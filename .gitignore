@@ -1,0 +1,8 @@
+# Produits de compilation
+/build/
+/trainer
+*.o
+*.d
+
+# Dossiers de travail générés par les tests
+.build/

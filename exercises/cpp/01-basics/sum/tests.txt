@@ -1,0 +1,35 @@
+=== test: exemple de l'énoncé
+--- stdin
+3
+1 2 3
+--- stdout
+6
+
+=== test: liste vide
+--- stdin
+0
+--- stdout
+0
+
+=== test: négatifs
+--- stdin
+4
+-5 10 -20 3
+--- stdout
+-12
+
+=== test: une valeur par ligne
+--- stdin
+3
+100
+200
+300
+--- stdout
+600
+
+=== test: grandes valeurs [hidden]
+--- stdin
+3
+1000000000000 1000000000000 -1
+--- stdout
+1999999999999

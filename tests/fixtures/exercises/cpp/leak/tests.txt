@@ -1,0 +1,3 @@
+=== test: affiche 42
+--- stdout
+42

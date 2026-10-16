@@ -1,0 +1,7 @@
+-std=c11
+-Iinclude
+-D_XOPEN_SOURCE=700
+-Wall
+-Wextra
+-Wpedantic
+-xc

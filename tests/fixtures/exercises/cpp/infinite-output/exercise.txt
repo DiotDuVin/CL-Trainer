@@ -1,0 +1,12 @@
+id: cpp.fixture.infinite-output
+title: Fixture infinite-output
+lang: cpp
+level: 1
+topic: fixture
+timeout_ms: 1000
+
+## statement
+Afficher 42.
+
+## explanation
+Fixture de test du moteur.
