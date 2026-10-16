@@ -1,0 +1,8 @@
+{
+  // clangd fournit l'autocomplétion et les diagnostics (via compile_flags.txt).
+  // L'extension Microsoft C/C++ ne sert qu'au débogueur : on coupe son
+  // IntelliSense pour éviter les doublons et les conflits.
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "files.associations": { "*.h": "c" },
+  "editor.rulers": [100]
+}

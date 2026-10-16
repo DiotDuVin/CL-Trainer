@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "make",
+      "type": "shell",
+      "command": "make",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": {
+        "owner": "c",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*?):(\\d+):(\\d+):\\s+(?:fatal\\s+)?(error|warning):\\s+(.*)$",
+          "file": 1, "line": 2, "column": 3, "severity": 4, "message": 5
+        }
+      }
+    },
+    { "label": "make test", "type": "shell", "command": "make test", "group": "test", "problemMatcher": [] },
+    { "label": "make valgrind", "type": "shell", "command": "make valgrind", "group": "test", "problemMatcher": [] },
+    { "label": "make asan", "type": "shell", "command": "make asan", "group": "test", "problemMatcher": [] }
+  ]
+}
