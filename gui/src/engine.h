@@ -54,6 +54,9 @@ public:
     // Les pointeurs renvoyés restent valides jusqu'au prochain reload() :
     // les vues mémorisent donc un id (QString), jamais un pointeur.
     const exercise *find(const QString &id) const;
+    const lesson *findLesson(const QString &id) const;
+    bool lessonRead(const lesson &l) const;
+    void markLessonRead(const lesson &l);                              // lève une exception
     exercise_status status(const exercise &ex) const;
     const progress_entry *entry(const exercise &ex) const;
     bool unlocked(const exercise &ex) const;

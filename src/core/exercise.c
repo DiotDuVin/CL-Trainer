@@ -376,6 +376,7 @@ void exercise_free(exercise *ex)
     free(ex->explanation);
     free(ex->common_mistakes);
     free(ex->dir);
+    free(ex->lesson);
     sv_free(&ex->tags);
     sv_free(&ex->prereqs);
     sv_free(&ex->files);

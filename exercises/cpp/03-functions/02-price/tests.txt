@@ -1,0 +1,21 @@
+=== test: exemples de l'énoncé
+--- stdin
+12.5
+3 USD
+7.4 JPY 0
+0.125 BTC 3
+--- stdout
+12.50 EUR
+3.00 USD
+7 JPY
+0.125 BTC
+
+=== test: arrondi et négatif [hidden]
+--- stdin
+1234.5678 GBP 1
+-2.25
+0
+--- stdout
+1234.6 GBP
+-2.25 EUR
+0.00 EUR

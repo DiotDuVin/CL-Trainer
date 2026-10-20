@@ -158,4 +158,12 @@ void recommend_next(const catalog *cat, const progress *p, const char *lang,
     } else {
         out->reason = remaining ? RECO_LOCKED : RECO_ALL_DONE;
     }
+
+    /* 3. Le cours avant les exercices : si celui de l'exercice choisi n'est
+     *    pas encore lu, on propose de le lire d'abord. */
+    if (out->ex && out->ex->lesson && progress_status(p, out->ex->lesson) != STATUS_PASSED) {
+        out->lesson_to_read = catalog_find_lesson(cat, out->ex->lesson);
+        if (out->lesson_to_read)
+            out->reason = RECO_LESSON;
+    }
 }

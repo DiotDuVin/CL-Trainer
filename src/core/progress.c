@@ -371,6 +371,11 @@ void progress_apply(progress *p, const char *id, progress_event ev, int arg,
     case EVENT_SOLUTION:
         e->solution_seen = 1;
         break;
+    case EVENT_LESSON_READ:
+        e->status = STATUS_PASSED;
+        if (!e->passed_at[0])
+            memcpy(e->passed_at, stamp, sizeof stamp);
+        break;
     }
 }
 

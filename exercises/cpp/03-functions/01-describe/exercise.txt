@@ -1,0 +1,78 @@
+id: cpp.functions.describe
+title: Surcharge : décrire une valeur
+lang: cpp
+level: 2
+topic: functions
+tags: overloading, string
+requires: cpp.references.vowels
+files: main.cpp
+estimated_min: 15
+
+## statement
+Chaque ligne de l'entrée contient un type puis une valeur :
+
+    int 42              ->  entier : 42
+    double 2.5          ->  réel : 2.5
+    bool 1              ->  booléen : vrai      (0 -> faux)
+    text bonjour monde  ->  texte : bonjour monde (13 caractères)
+
+Le `main` fourni lit chaque ligne dans une variable du bon type, puis appelle
+`describe(valeur)`. Seule la version `describe(int)` existe : c'est pour
+cela que les booléens et les réels s'affichent pour l'instant comme des
+entiers. Lance d'abord `trainer check` pour le constater.
+
+Ajoute les **surcharges** `describe(double)` et `describe(bool)`, et complète
+`describe(const std::string &)`. Toutes renvoient une `std::string`. Pour le
+texte, le nombre de caractères est `text.size()` (les tests n'ont pas
+d'accents).
+
+## hints
+Une surcharge est simplement une autre fonction avec le même nom et un type
+de paramètre différent : `std::string describe(double x) { ... }`.
+---
+Pour transformer un nombre en texte : `std::to_string(42)` marche pour un
+entier, mais affiche 2.500000 pour un double. Utilise plutôt un flux de
+chaîne : `std::ostringstream os; os << x; os.str()` (en-tête <sstream>).
+
+## explanation
+Solution de référence :
+
+    std::string describe(int x) {
+        return "entier : " + std::to_string(x);
+    }
+    std::string describe(double x) {
+        std::ostringstream os;
+        os << "réel : " << x;
+        return os.str();
+    }
+    std::string describe(bool b) {
+        return std::string("booléen : ") + (b ? "vrai" : "faux");
+    }
+    std::string describe(const std::string &text) {
+        return "texte : " + text + " (" + std::to_string(text.size()) + " caractères)";
+    }
+
+Ce qu'il faut retenir :
+
+- Le compilateur choisit la surcharge d'après le **type statique** de
+  l'argument, à la compilation. Un `double` qui vaut 3 appelle quand même
+  `describe(double)` et affiche « réel : 3 ».
+- Sans surcharge `bool`, l'appel `describe(true)` trouvait `describe(int)` :
+  un `bool` se convertit implicitement en `int` (true -> 1). Même chose pour
+  `double -> int`, avec perte de la partie décimale. Ces conversions
+  silencieuses sont une source classique de bugs : -Wconversion en signale
+  une partie.
+- `std::ostringstream` fonctionne comme `std::cout`, mais écrit dans une
+  chaîne : c'est la façon idiomatique de formater en C++ (avant le
+  `std::format` de C++20).
+- `std::string("booléen : ") + ...` : il faut qu'au moins un des deux
+  opérandes de `+` soit une `std::string`. Deux chaînes littérales ne
+  s'additionnent pas (ce sont des pointeurs).
+
+## common_mistakes
+- `std::to_string(2.5)` donne "2.500000" : pas le format attendu.
+- `"booléen : " + (b ? "vrai" : "faux")` ne compile pas : on additionne deux
+  pointeurs `const char *`.
+- Appeler `describe("texte")` avec une chaîne littérale : c'est la surcharge
+  `bool` qui est choisie (voir le cours) ! Le `main` fourni passe bien une
+  `std::string`.

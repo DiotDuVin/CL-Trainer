@@ -19,8 +19,17 @@ Feuille de route :
    `validate`, `doctor`, `--json`
 4. Application graphique ✅ (v0.4.0) : **Qt 6 Widgets / C++17**, construite avec CMake,
    liée à libtrainer. VS Code reste l'éditeur ; l'application sert de tableau de bord.
-5. Environ 30 exercices C++ et des quiz, puis la commande `review` (répétition espacée
-   Leitner, avec les champs `box=` et `due=` dans `progress.txt`)
+5a. Cours ✅ : chapitres (`lesson.md` + exercices), `learn`, exemples vérifiés par
+   `validate` ; 3 chapitres C++ et 9 exercices.
+5b. Cours C++ 4 à 14 et exercices restants, par lots (plan ci-dessous).
+5c. Embellissement de l'application (thème clair/sombre, mise en page), puis `review`
+   (répétition espacée Leitner, avec les champs `box=` et `due=` dans `progress.txt`).
+
+   Plan C++ : 1 Premier programme ✅, 2 Références et const ✅, 3 Fonctions modernes ✅,
+   4 vector/array, 5 Classes, 6 RAII et destructeurs, 7 new/delete et pointeurs
+   intelligents, 8 Sémantique de déplacement, 9 Conteneurs associatifs,
+   10 Algorithmes et lambdas, 11 Templates, 12 Exceptions, 13 Héritage et
+   polymorphisme, 14 Organiser un projet (en-têtes, CMake).
 6. Git, puis C#, puis Rust
 
 ## Organisation
@@ -31,7 +40,10 @@ src/util/           error (thread-local), xalloc, strbuf, strvec, text, fs
 src/core/           le moteur, SANS affichage :
   config.c            dossiers (exercices, workspace, données XDG, chemin de la CLI)
   exercise.c          parser exercise.txt         testspec.c  parser tests.txt
-  catalog.c           scan, tri, doublons, prérequis inconnus, cycles (DFS 3 couleurs)
+  lesson.c            parser lesson.md (en-tête, ---, Markdown) ; extraction des
+                      blocs « ```cpp example » et de leur « ```output »
+  catalog.c           scan, tri, doublons, prérequis inconnus, cycles (DFS 3 couleurs) ;
+                      chapitres : lesson.md rattaché aux exercices des sous-dossiers
   process.c           fork/execv/poll, timeout, kill du groupe ; PATH résolu dans le père
   compare.c           normalisation + première différence (output_diff)
   runner.c            registre ; runners/runner_cpp.c (g++ -std=c++17 ..., sanitize)
@@ -52,6 +64,7 @@ gui/                application Qt 6 (C++17, CMake ; compile aussi libtrainer de
   src/engine.*        enveloppe RAII de libtrainer ; erreurs C -> exceptions ;
                       runCheck() thread-safe (copie de l'exercice) -> shared_ptr<CheckResult>
   src/catalogview.*   QTreeWidget langage > thème > exercice (id dans Qt::UserRole)
+  src/lessonview.*    cours (Markdown), « Marquer comme lu », « Passer aux exercices »
   src/exerciseview.*  énoncé (Markdown), boutons, résultats, correction ; vérification
                       dans un thread (QtConcurrent::run + QFutureWatcher)
   src/mainwindow.*    assemblage, barre d'outils (Suivant, Actualiser), QSettings,
@@ -150,6 +163,17 @@ void recommend_next(const catalog *, const progress *, const char *lang, recomme
 
 /* validate.h — tests.txt valide + ≥1 test caché ; solution réussit tout ; starter compile et échoue */
 int  validate_exercise(const exercise *, strvec *problems);
+int  validate_lesson(const lesson *, strvec *problems);   /* exemples : compilés (ASan/UBSan), exécutés */
+
+/* lesson.h */
+typedef struct { char *id, *title, *lang, *topic; int estimated_min; char *body; int body_line;
+                 char *dir; } lesson;
+int  lesson_parse(const char *text, const char *origin, lesson *);  int lesson_load(const char *dir, lesson *);
+void lesson_free(lesson *);
+void lesson_extract_examples(const lesson *, lesson_examples *);  /* { code, expected, line } */
+/* catalog : + lessons/nlessons, catalog_find_lesson(cat, id) ; exercise.lesson = id du cours */
+/* progress : + EVENT_LESSON_READ (cours lu = STATUS_PASSED) */
+/* stats : + RECO_LESSON, recommendation.lesson_to_read */
 
 /* doctor.h */
 typedef struct { const char *command, *purpose; int essential, found; char *version, *install_hint; } tool_status;
@@ -177,6 +201,12 @@ const runner *runner_for(const char *lang);
    fs_make_temp_dir, path_join, fs_absolute...) */
 ```
 
+## Piège C/C++ rencontré deux fois
+
+Un champ de structure ne doit pas porter le nom d'un type utilisé dans la même structure
+(`verdict verdict;`, `const lesson *lesson;`) : légal en C, erreur en C++
+(« changes meaning »). `make cxx-headers` le détecte.
+
 ## Application Qt : règles
 
 - Les vues mémorisent un **id d'exercice**, jamais un pointeur : `Engine::reload()`
@@ -189,7 +219,7 @@ const runner *runner_for(const char *lang);
 
 ## Commandes
 
-`list [--lang L] [--topic T] [--json]`, `show <id>`, `start <id> [--force] [--open]`,
+`learn [<id>]`, `list [--lang L] [--topic T] [--json]`, `show <id>` (exercice ou cours), `start <id> [--force] [--open]`,
 `check <id> [--json]`, `hint <id>`, `solution <id> [--yes]`, `next [--lang L]`, `stats`,
 `validate [<id>...]`, `doctor`.
 

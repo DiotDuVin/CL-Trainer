@@ -1,0 +1,53 @@
+id: cpp.references.swap
+title: Échanger avec des références
+lang: cpp
+level: 1
+topic: references
+tags: references, functions
+requires: cpp.basics.sum
+files: main.cpp
+estimated_min: 10
+
+## statement
+Complète la fonction `swap_values` pour qu'elle échange les valeurs de ses
+deux arguments, **en utilisant des références** (pas de pointeurs).
+
+Le programme fourni lit des paires d'entiers (une par ligne), appelle
+`swap_values`, puis affiche la paire échangée :
+
+    entrée : 3 7
+    sortie : 7 3
+
+Ne modifie pas `main`.
+
+## hints
+Pour que la fonction modifie les variables de l'appelant, ses paramètres
+doivent être des références : `int &a` et pas `int a`.
+---
+Une variable temporaire suffit : `int tmp = a; a = b; b = tmp;`
+
+## explanation
+Solution de référence :
+
+    void swap_values(int &a, int &b) {
+        int tmp = a;
+        a = b;
+        b = tmp;
+    }
+
+Avec des paramètres `int a, int b` (par valeur), la fonction échange ses
+propres copies et l'appelant ne voit rien : c'est l'erreur la plus fréquente.
+Avec `int &a, int &b`, `a` et `b` sont d'autres noms pour `x` et `y` de
+`main`.
+
+Par rapport à la version C (`void swap(int *a, int *b)`) : pas de `*` dans
+le corps, pas de `&` à l'appel, et pas de pointeur nul possible.
+
+En vrai code, on utilise `std::swap(x, y)` (en-tête <utility>), qui marche
+pour tous les types.
+
+## common_mistakes
+- Garder `int a, int b` : le code compile et ne fait rien d'utile.
+- Écrire `a = b; b = a;` sans variable temporaire : les deux valent b.
+- Écrire `int &tmp = a;` : tmp devient un alias de a, et `a = b` modifie
+  aussi tmp. La variable temporaire doit être une vraie copie (`int tmp`).

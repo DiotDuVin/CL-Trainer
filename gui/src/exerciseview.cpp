@@ -28,15 +28,6 @@ constexpr int kBuildRow = -2;   // journal de compilation (échec)
 constexpr int kWarningRow = -1; // avertissements du compilateur
 constexpr int kRowRole = Qt::UserRole;
 
-void setMarkdown(QTextBrowser *view, const QString &markdown)
-{
-    // MarkdownNoHTML : un « <prénom> » dans un énoncé doit s'afficher tel
-    // quel, pas être interprété comme une balise HTML.
-    view->document()->setMarkdown(
-        markdown, QTextDocument::MarkdownFeatures(QTextDocument::MarkdownDialectGitHub |
-                                                  QTextDocument::MarkdownNoHTML));
-}
-
 QPushButton *makeButton(const QString &text, const QString &name, QWidget *parent)
 {
     auto *b = new QPushButton(text, parent);
@@ -66,6 +57,7 @@ ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
     banner_ = new QLabel(this);
     banner_->setWordWrap(true);
     banner_->setStyleSheet(QStringLiteral("color:#d08a10"));
+    lessonButton_ = makeButton(tr("📖 Lire le cours"), QStringLiteral("lessonButton"), this);
 
     startButton_ = makeButton(tr("Commencer"), QStringLiteral("startButton"), this);
     editorButton_ = makeButton(tr("Ouvrir dans VS Code"), QStringLiteral("editorButton"), this);
@@ -108,10 +100,14 @@ ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
     tabs_->addTab(results, tr("Résultats"));
     tabs_->addTab(correction_, tr("Correction"));
 
+    auto *bannerRow = new QHBoxLayout;
+    bannerRow->addWidget(banner_, 1);
+    bannerRow->addWidget(lessonButton_);
+
     auto *layout = new QVBoxLayout(this);
     layout->addWidget(title_);
     layout->addWidget(meta_);
-    layout->addWidget(banner_);
+    layout->addLayout(bannerRow);
     layout->addLayout(buttons);
     layout->addWidget(tabs_, 1);
 
@@ -124,6 +120,10 @@ ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
     connect(hintButton_, &QPushButton::clicked, this, &ExerciseView::onHint);
     connect(solutionButton_, &QPushButton::clicked, this, &ExerciseView::onSolution);
     connect(tests_, &QListWidget::currentRowChanged, this, &ExerciseView::onTestSelected);
+    connect(lessonButton_, &QPushButton::clicked, this, [this] {
+        if (const exercise *ex = engine_.find(id_); ex && ex->lesson)
+            emit openLesson(qs(ex->lesson));
+    });
     connect(&watcher_, &QFutureWatcher<std::shared_ptr<CheckResult>>::finished, this,
             &ExerciseView::onCheckFinished);
 
@@ -170,6 +170,7 @@ void ExerciseView::refresh()
         title_->setText(tr("Choisis un exercice"));
         meta_->setText(tr("Dans la liste de gauche, ou avec « Suivant » dans la barre d'outils."));
         banner_->hide();
+        lessonButton_->hide();
         statement_->clear();
         correction_->clear();
         return;
@@ -192,22 +193,29 @@ void ExerciseView::refresh()
         meta += tr(" (%n vérification(s))", nullptr, e->attempts);
     meta_->setText(meta);
 
+    // Bandeau : cours pas encore lu, prérequis pas encore réussis.
+    QStringList notes;
+    const lesson *l = ex->lesson ? engine_.findLesson(qs(ex->lesson)) : nullptr;
+    const bool lessonUnread = l && !engine_.lessonRead(*l);
+    if (lessonUnread)
+        notes << tr("Cours du chapitre pas encore lu : « %1 ».").arg(qs(l->title));
     if (!engine_.unlocked(*ex)) {
         QStringList missing;
         for (size_t i = 0; i < ex->prereqs.len; i++)
             missing << qs(ex->prereqs.items[i]);
-        banner_->setText(tr("Prérequis conseillés, pas encore réussis : %1")
-                             .arg(missing.join(QStringLiteral(", "))));
-        banner_->show();
-    } else {
-        banner_->hide();
+        notes << tr("Prérequis conseillés, pas encore réussis : %1")
+                     .arg(missing.join(QStringLiteral(", ")));
     }
+    banner_->setText(notes.join(QLatin1Char('\n')));
+    banner_->setVisible(!notes.isEmpty());
+    lessonButton_->setVisible(l != nullptr);
+    lessonButton_->setText(lessonUnread ? tr("📖 Lire le cours") : tr("📖 Revoir le cours"));
 
     // Énoncé + indices déjà révélés
     const int hintsTotal = static_cast<int>(ex->hints.len);
     const int hintsShown = e ? std::min(e->hints, hintsTotal) : 0;
     const int scroll = statement_->verticalScrollBar()->value();
-    setMarkdown(statement_, format::statementMarkdown(*ex, hintsShown));
+    format::setMarkdown(statement_, format::statementMarkdown(*ex, hintsShown));
     statement_->verticalScrollBar()->setValue(scroll);
 
     startButton_->setText(started ? tr("Recommencer") : tr("Commencer"));
@@ -224,9 +232,9 @@ void ExerciseView::refresh()
     const bool showSolution = solutionShown_ || (e && e->solution_seen);
     tabs_->setTabEnabled(2, passed || showSolution);
     if (showSolution)
-        setMarkdown(correction_, format::solutionMarkdown(*ex));
+        format::setMarkdown(correction_, format::solutionMarkdown(*ex));
     else if (passed)
-        setMarkdown(correction_, format::correctionMarkdown(*ex));
+        format::setMarkdown(correction_, format::correctionMarkdown(*ex));
     else
         correction_->clear();
 }

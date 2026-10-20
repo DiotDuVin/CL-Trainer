@@ -1,0 +1,31 @@
+=== test: exemple
+--- stdin
+Bonjour le monde
+--- stdout
+6
+
+=== test: plusieurs lignes
+--- stdin
+C++
+programmation
+xyz
+--- stdout
+0
+5
+1
+
+=== test: majuscules [hidden]
+--- stdin
+AEIOUY aeiouy
+--- stdout
+12
+
+=== test: accents et ligne vide [hidden]
+--- stdin
+été à la mer
+
+ÉCOLE
+--- stdout
+2
+0
+2

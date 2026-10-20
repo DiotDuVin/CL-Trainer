@@ -1,6 +1,8 @@
 // catalogview.cpp — voir catalogview.h.
 #include "catalogview.h"
 
+#include <cstring>
+
 #include <QHeaderView>
 #include <QHash>
 #include <QTreeWidgetItemIterator>
@@ -9,8 +11,10 @@
 #include "format.h"
 
 namespace {
-// Rôle Qt où l'on range l'id de l'exercice dans chaque ligne de l'arbre.
+// Rôles Qt où l'on range, dans chaque ligne de l'arbre, l'id de l'élément et
+// s'il s'agit d'un cours.
 constexpr int kIdRole = Qt::UserRole;
+constexpr int kLessonRole = Qt::UserRole + 1;
 }
 
 CatalogView::CatalogView(QWidget *parent) : QTreeWidget(parent)
@@ -28,48 +32,75 @@ CatalogView::CatalogView(QWidget *parent) : QTreeWidget(parent)
     // méthodes.
     connect(this, &QTreeWidget::currentItemChanged, this,
             [this](QTreeWidgetItem *current, QTreeWidgetItem *) {
-                emit exerciseSelected(current ? current->data(0, kIdRole).toString() : QString());
+                const QString id = current ? current->data(0, kIdRole).toString() : QString();
+                if (current && current->data(0, kLessonRole).toBool())
+                    emit lessonSelected(id);
+                else
+                    emit exerciseSelected(id);
             });
 }
 
 void CatalogView::populate(const Engine &engine)
 {
-    const QString previous = currentExerciseId();
+    const QString previous = currentId();
     // Pendant la reconstruction, on bloque les signaux : sinon chaque
     // suppression de ligne émettrait « sélection changée ».
     blockSignals(true);
     clear();
 
-    QHash<QString, QTreeWidgetItem *> groups; // "cpp" ou "cpp/basics" -> ligne
-    const catalog &cat = engine.exercises();
-    for (size_t i = 0; i < cat.len; i++) {
-        const exercise &ex = cat.items[i];
-        const QString lang = qs(ex.lang);
-        const QString topicKey = lang + QLatin1Char('/') + qs(ex.topic);
-
-        QTreeWidgetItem *langItem = groups.value(lang);
-        if (!langItem) {
+    // Clés : "cpp" (langage), "lesson:<id>" (chapitre), "cpp/basics" (thème).
+    QHash<QString, QTreeWidgetItem *> groups;
+    auto langNode = [&](const char *lang) {
+        const QString key = qs(lang);
+        QTreeWidgetItem *item = groups.value(key);
+        if (!item) {
             // L'arbre devient PROPRIÉTAIRE de la ligne : pas de delete à faire.
-            langItem = new QTreeWidgetItem(this, { format::langName(ex.lang) });
-            QFont bold = langItem->font(0);
+            item = new QTreeWidgetItem(this, { format::langName(lang) });
+            QFont bold = item->font(0);
             bold.setBold(true);
-            langItem->setFont(0, bold);
-            langItem->setExpanded(true);
-            groups.insert(lang, langItem);
+            item->setFont(0, bold);
+            item->setExpanded(true);
+            groups.insert(key, item);
         }
-        QTreeWidgetItem *topicItem = groups.value(topicKey);
-        if (!topicItem) {
-            topicItem = new QTreeWidgetItem(langItem, { qs(ex.topic) });
-            topicItem->setExpanded(true);
-            groups.insert(topicKey, topicItem);
+        return item;
+    };
+
+    // Cours et exercices sont triés par dossier : on les fusionne dans cet
+    // ordre. Le dossier d'un chapitre précède celui de ses exercices.
+    const catalog &cat = engine.exercises();
+    size_t j = 0;
+    for (size_t i = 0; i <= cat.len; i++) {
+        const exercise *ex = i < cat.len ? &cat.items[i] : nullptr;
+        for (; j < cat.nlessons && (!ex || std::strcmp(cat.lessons[j].dir, ex->dir) < 0); j++) {
+            const lesson &l = cat.lessons[j];
+            auto *chapter = new QTreeWidgetItem(langNode(l.lang), { qs(l.title) });
+            chapter->setExpanded(true);
+            groups.insert(QStringLiteral("lesson:") + qs(l.id), chapter);
+            auto *item = new QTreeWidgetItem(chapter);
+            item->setData(0, kIdRole, qs(l.id));
+            item->setData(0, kLessonRole, true);
+            decorate(item, engine);
         }
-        auto *item = new QTreeWidgetItem(topicItem);
-        item->setData(0, kIdRole, qs(ex.id));
+        if (!ex)
+            break;
+        QTreeWidgetItem *parent = ex->lesson
+            ? groups.value(QStringLiteral("lesson:") + qs(ex->lesson)) : nullptr;
+        if (!parent) { // pas de cours : regroupement par thème
+            const QString key = qs(ex->lang) + QLatin1Char('/') + qs(ex->topic);
+            parent = groups.value(key);
+            if (!parent) {
+                parent = new QTreeWidgetItem(langNode(ex->lang), { qs(ex->topic) });
+                parent->setExpanded(true);
+                groups.insert(key, parent);
+            }
+        }
+        auto *item = new QTreeWidgetItem(parent);
+        item->setData(0, kIdRole, qs(ex->id));
         decorate(item, engine);
     }
     blockSignals(false);
     if (!previous.isEmpty())
-        selectExercise(previous);
+        selectId(previous);
 }
 
 void CatalogView::refreshStatuses(const Engine &engine)
@@ -81,6 +112,16 @@ void CatalogView::refreshStatuses(const Engine &engine)
 
 void CatalogView::decorate(QTreeWidgetItem *item, const Engine &engine)
 {
+    if (item->data(0, kLessonRole).toBool()) {
+        const lesson *l = engine.findLesson(item->data(0, kIdRole).toString());
+        if (!l)
+            return;
+        const bool read = engine.lessonRead(*l);
+        item->setText(0, read ? tr("✓  📖 Cours (lu)") : tr("📖  Cours"));
+        item->setForeground(0, read ? QBrush(format::statusColor(STATUS_PASSED, true)) : QBrush());
+        item->setToolTip(0, qs(l->id));
+        return;
+    }
     const exercise *ex = engine.find(item->data(0, kIdRole).toString());
     if (!ex)
         return;
@@ -109,7 +150,7 @@ QTreeWidgetItem *CatalogView::findItem(const QString &id) const
     return nullptr;
 }
 
-bool CatalogView::selectExercise(const QString &id)
+bool CatalogView::selectId(const QString &id)
 {
     // Les lignes « langage » et « thème » ont un id vide : ne pas les confondre
     // avec un exercice (cas du premier lancement, sans dernier exercice connu).
@@ -123,7 +164,7 @@ bool CatalogView::selectExercise(const QString &id)
     return true;
 }
 
-QString CatalogView::currentExerciseId() const
+QString CatalogView::currentId() const
 {
     return currentItem() ? currentItem()->data(0, kIdRole).toString() : QString();
 }

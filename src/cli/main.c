@@ -20,6 +20,7 @@ typedef struct {
 
 static const command commands[] = {
     { "list",     cmd_list,     "liste les exercices et leur état  [--lang L] [--topic T] [--json]" },
+    { "learn",    cmd_learn,    "lit un cours (sans argument : la liste)  [<id>]" },
     { "show",     cmd_show,     "affiche l'énoncé                  <id>" },
     { "start",    cmd_start,    "prépare l'exercice                <id> [--force] [--open]" },
     { "check",    cmd_check,    "compile et teste                  <id> [--json]" },
