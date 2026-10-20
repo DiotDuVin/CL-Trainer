@@ -1,0 +1,35 @@
+=== test: trois valeurs
+--- stdin
+3
+1 2 3
+--- stdout
+a : 0
+b : 0
+c : 0
+v[0] : 1 2 3
+v[1] : 0 0
+allocations : 3
+
+=== test: une valeur
+--- stdin
+1
+42
+--- stdout
+a : 0
+b : 0
+c : 0
+v[0] : 42
+v[1] : 0 0
+allocations : 3
+
+=== test: négatifs [hidden]
+--- stdin
+4
+-1 -2 -3 -4
+--- stdout
+a : 0
+b : 0
+c : 0
+v[0] : -1 -2 -3 -4
+v[1] : 0 0
+allocations : 3

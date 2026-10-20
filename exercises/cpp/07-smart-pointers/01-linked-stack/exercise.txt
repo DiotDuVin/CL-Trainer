@@ -1,0 +1,100 @@
+id: cpp.smart.linked-stack
+title: Une pile chaînée avec unique_ptr
+lang: cpp
+level: 3
+topic: smart-pointers
+tags: unique_ptr, linked-list, raii
+requires: cpp.raii.rule-of-three
+files: main.cpp
+sanitize: yes
+estimated_min: 30
+
+## statement
+Complète la classe `Stack`, une pile d'entiers en **liste chaînée** : chaque
+nœud **possède** le suivant grâce à un `std::unique_ptr<Node>`.
+
+- `void push(int v)` : empile ;
+- `bool pop()` : dépile ; renvoie `false` si la pile est vide ;
+- `bool empty() const`, `std::size_t size() const` ;
+- `int top() const` : le sommet (appelé seulement si la pile n'est pas vide).
+
+Aucun `new` ni `delete` : la mémoire doit être libérée automatiquement.
+L'exercice est compilé avec AddressSanitizer, qui signale toute fuite.
+
+Le `main` fourni lit des commandes `push N`, `pop`, `top`, `size` :
+
+    entrée : push 1          sortie : 2
+             push 2                   1
+             top                      1
+             pop
+             top
+             size
+
+## hints
+Le sommet est un `std::unique_ptr<Node> head_;`. Pour empiler, le nouveau
+nœud prend possession de l'ancien sommet :
+`head_ = std::make_unique<Node>(Node{v, std::move(head_)});`
+---
+Pour dépiler : `head_ = std::move(head_->next);`. L'ancien sommet n'est plus
+possédé par personne : il est détruit automatiquement.
+---
+Garde la taille dans un membre `size_` mis à jour par push et pop, plutôt que
+de parcourir la liste à chaque appel de `size()`.
+
+## explanation
+Solution de référence :
+
+    class Stack {
+    public:
+        void push(int v) {
+            head_ = std::make_unique<Node>(Node{v, std::move(head_)});
+            ++size_;
+        }
+        bool pop() {
+            if (!head_)
+                return false;
+            head_ = std::move(head_->next); // l'ancien sommet est libéré ici
+            --size_;
+            return true;
+        }
+        bool empty() const { return head_ == nullptr; }
+        std::size_t size() const { return size_; }
+        int top() const { return head_->value; }
+
+    private:
+        struct Node {
+            int value;
+            std::unique_ptr<Node> next; // chaque nœud possède le suivant
+        };
+        std::unique_ptr<Node> head_;
+        std::size_t size_ = 0;
+    };
+
+Points importants :
+
+- **La propriété est exprimée par les types.** La pile possède le sommet, qui
+  possède le suivant, etc. Détruire la pile détruit le sommet, qui détruit le
+  suivant... Aucun destructeur à écrire, aucune fuite possible.
+- **`std::move(head_)`** transfère l'ancien sommet dans le nouveau nœud :
+  `head_` devient vide, puis reçoit le nouveau nœud. Un `unique_ptr` ne se
+  copie pas, il se déplace.
+- **Dans `pop`**, `head_ = std::move(head_->next)` : l'affectation libère
+  l'ancien sommet APRÈS avoir récupéré son `next`. C'est sûr car le
+  `unique_ptr` déplacé est d'abord sorti du nœud.
+- **La classe n'est pas copiable** : un membre `unique_ptr` supprime
+  automatiquement la copie. Copier une pile demanderait d'écrire une copie
+  profonde, comme au chapitre 6.
+- **Limite** : la destruction est récursive. Une pile d'un million d'éléments
+  ferait déborder la pile d'appels. Une version robuste ajoute un destructeur
+  qui dépile en boucle : `~Stack() { while (pop()) {} }`.
+- En vrai code, on utiliserait `std::stack<int>` (ou un `std::vector<int>`),
+  plus rapide qu'une liste chaînée car ses éléments sont contigus en mémoire.
+
+## common_mistakes
+- Utiliser `new Node` et des pointeurs bruts : fuite si un `delete` est oublié.
+- Copier un `unique_ptr` (`next = head_`) : erreur de compilation, il faut
+  `std::move`.
+- Utiliser `head_` après `std::move(head_)` sans lui réaffecter quelque chose :
+  il est vide.
+- Appeler `top()` sur une pile vide : déréférencement de nullptr (le `main`
+  fourni vérifie `empty()` avant).

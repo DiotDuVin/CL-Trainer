@@ -1,0 +1,52 @@
+=== test: exemple
+--- stdin
+push 1
+push 2
+top
+pop
+top
+size
+--- stdout
+2
+1
+1
+
+=== test: pile vide
+--- stdin
+pop
+top
+size
+push 7
+pop
+pop
+size
+--- stdout
+vide
+vide
+0
+vide
+0
+
+=== test: beaucoup d'éléments [hidden]
+--- stdin
+push 1
+push 2
+push 3
+push 4
+push 5
+pop
+pop
+size
+top
+--- stdout
+3
+3
+
+=== test: libération en fin de programme [hidden]
+--- stdin
+push 10
+push 20
+push 30
+size
+--- stdout
+3

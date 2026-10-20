@@ -1,0 +1,86 @@
+id: cpp.smart.shared-owners
+title: Propriétaires partagés avec shared_ptr
+lang: cpp
+level: 3
+topic: smart-pointers
+tags: shared_ptr, ownership, raii
+requires: cpp.smart.linked-stack
+files: main.cpp
+sanitize: yes
+estimated_min: 25
+
+## statement
+Un programme gère 5 emplacements (numérotés de 0 à 4), chacun pouvant
+détenir un `std::shared_ptr<Resource>`. Plusieurs emplacements peuvent
+partager la même ressource. Une ressource affiche `libération NOM` quand elle
+est détruite : ce doit être exactement au moment où son **dernier**
+propriétaire la lâche.
+
+Complète le traitement des commandes :
+
+- `new i NOM` : l'emplacement i reçoit une nouvelle ressource NOM (ce qu'il
+  détenait avant est lâché) ;
+- `copy i j` : l'emplacement j partage la ressource de i (j lâche l'ancienne) ;
+- `drop i` : l'emplacement i lâche sa ressource ;
+- `count i` : affiche `NOM : N propriétaire(s)`, ou `vide`.
+
+À la fin du programme, les ressources encore détenues sont libérées
+automatiquement (destruction des emplacements, du 4 au 0).
+
+    entrée : new 0 a          sortie : a : 2 propriétaire(s)
+             copy 0 1                  a : 1 propriétaire(s)
+             count 0                   libération a
+             drop 0
+             count 1
+             drop 1
+
+## hints
+`slots[i] = std::make_shared<Resource>(name);` : l'affectation lâche
+l'ancienne ressource (son compteur diminue) avant de prendre la nouvelle.
+---
+`copy i j` est une simple affectation entre deux `shared_ptr` :
+`slots[j] = slots[i];`. `drop i`, c'est `slots[i].reset();`.
+---
+`use_count()` donne le nombre de propriétaires, et `slots[i]->name()` le nom.
+Un `shared_ptr` vide se teste avec `if (!slots[i])`.
+
+## explanation
+Solution de référence (cœur de la boucle) :
+
+    if (cmd == "new") {
+        std::cin >> i >> name;
+        slots[i] = std::make_shared<Resource>(name);
+    } else if (cmd == "copy") {
+        std::cin >> i >> j;
+        slots[j] = slots[i];
+    } else if (cmd == "drop") {
+        std::cin >> i;
+        slots[i].reset();
+    } else if (cmd == "count") {
+        std::cin >> i;
+        if (!slots[i])
+            std::cout << "vide\n";
+        else
+            std::cout << slots[i]->name() << " : " << slots[i].use_count()
+                      << " propriétaire(s)\n";
+    }
+
+Points importants :
+
+- **Tout le travail est fait par `shared_ptr`.** Copier incrémente le
+  compteur ; affecter, `reset` ou détruire le décrémente ; à 0, l'objet est
+  détruit. Tu n'as écrit aucun `delete`, et le moment de la libération est
+  pourtant parfaitement déterministe.
+- **`copy 0 0`** (copier un emplacement sur lui-même) est sans effet : l'auto-
+  affectation de `shared_ptr` est sûre.
+- **En fin de programme**, `std::array` détruit ses éléments du dernier au
+  premier : les libérations restantes apparaissent dans cet ordre.
+- **`use_count()` est utile pour comprendre, rarement en vrai code** : avec
+  plusieurs threads, la valeur peut changer juste après l'avoir lue. On ne
+  prend pas de décision sur sa base.
+
+## common_mistakes
+- Créer une nouvelle ressource pour `copy` au lieu de partager l'existante.
+- Utiliser `slots[j] = std::make_shared<Resource>(*slots[i])` : c'est une
+  COPIE de la ressource (deux objets distincts), pas un partage.
+- Lire `slots[i]->name()` sur un emplacement vide : déréférencement de nullptr.

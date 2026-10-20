@@ -1,0 +1,63 @@
+id: cpp.maps.visitors
+title: Visiteurs distincts par jour
+lang: cpp
+level: 3
+topic: maps
+tags: map, set, nested-containers
+requires: cpp.maps.word-count
+files: main.cpp
+estimated_min: 20
+
+## statement
+Chaque ligne d'un journal de connexions contient une date (`AAAA-MM-JJ`) et
+un identifiant de visiteur. Un même visiteur peut se connecter plusieurs fois
+dans la journée.
+
+Affiche, pour chaque date **dans l'ordre chronologique**, le nombre de
+visiteurs **distincts** ce jour-là, puis, sur une dernière ligne, le nombre
+total de visiteurs distincts sur toute la période :
+
+    entrée : 2026-10-02 ada         sortie : 2026-10-01 : 1
+             2026-10-01 linus                2026-10-02 : 2
+             2026-10-02 ada                  total : 2
+             2026-10-02 linus
+
+## hints
+« Distinct » : c'est le rôle d'un `std::set`, qui ignore les doublons.
+---
+Une date -> un ensemble de visiteurs : `std::map<std::string, std::set<std::string>>`.
+`days[date].insert(visitor);` crée l'ensemble vide au premier accès à la date.
+---
+Le format AAAA-MM-JJ a une propriété utile : l'ordre alphabétique des chaînes
+est aussi l'ordre chronologique. Le `std::map` trie donc correctement.
+
+## explanation
+Solution de référence :
+
+    std::map<std::string, std::set<std::string>> days;
+    std::set<std::string> everyone;
+    std::string date, visitor;
+    while (std::cin >> date >> visitor) {
+        days[date].insert(visitor);
+        everyone.insert(visitor);
+    }
+    for (const auto &[day, visitors] : days)
+        std::cout << day << " : " << visitors.size() << '\n';
+    std::cout << "total : " << everyone.size() << '\n';
+
+Points importants :
+
+- **Composer des conteneurs** : un `map` dont les valeurs sont des `set`. Pas
+  besoin de nouvelle structure, la bibliothèque standard s'assemble.
+- **`days[date]`** renvoie une référence vers l'ensemble de cette date (créé
+  vide la première fois) ; `.insert(visitor)` ignore les doublons.
+- **Le total** n'est pas la somme des valeurs par jour : un visiteur présent
+  deux jours compte une seule fois. D'où un deuxième `set`.
+- **Les dates ISO 8601 se trient comme des chaînes** : c'est pour cette raison
+  que ce format est utilisé partout, et notamment dans le fichier de
+  progression de trainer.
+
+## common_mistakes
+- Utiliser un `std::vector<std::string>` par jour : les doublons sont comptés.
+- Additionner les tailles par jour pour le total.
+- Utiliser `std::unordered_map` : les dates ne sortent plus dans l'ordre.

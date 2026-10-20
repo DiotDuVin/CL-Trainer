@@ -1,0 +1,36 @@
+=== test: exemple
+--- stdin
+Le chat, le chien. LE rat !
+--- stdout
+chat : 1
+chien : 1
+le : 3
+rat : 1
+
+=== test: plusieurs lignes
+--- stdin
+un deux
+deux TROIS trois
+trois
+--- stdout
+deux : 2
+trois : 3
+un : 1
+
+=== test: aucun mot [hidden]
+--- stdin
+42 !!! ...
+--- stdout
+aucun mot
+
+=== test: entrée vide [hidden]
+--- stdout
+aucun mot
+
+=== test: ponctuation collée [hidden]
+--- stdin
+C'est-a-dire: c'est (simple).
+--- stdout
+cest : 1
+cestadire : 1
+simple : 1
