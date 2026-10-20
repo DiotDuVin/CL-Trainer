@@ -17,8 +17,8 @@ Feuille de route :
 2. Moteur C++ minimal ✅ (v0.2.0)
 3. libtrainer + progression ✅ (v0.3.0) : `hint`, `solution`, `next`, `stats`,
    `validate`, `doctor`, `--json`
-4. Application graphique **Qt 6 / C++** (Qt Widgets, CMake) liée à `libtrainer.a`.
-   VS Code reste l'éditeur ; l'application sert de tableau de bord.
+4. Application graphique ✅ (v0.4.0) : **Qt 6 Widgets / C++17**, construite avec CMake,
+   liée à libtrainer. VS Code reste l'éditeur ; l'application sert de tableau de bord.
 5. Environ 30 exercices C++ et des quiz, puis la commande `review` (répétition espacée
    Leitner, avec les champs `box=` et `due=` dans `progress.txt`)
 6. Git, puis C#, puis Rust
@@ -48,10 +48,21 @@ tests/unit/         mini-framework CHECK* ; une suite par module
 tests/e2e.sh        bout en bout (progression isolée via XDG_DATA_HOME)
 tests/cxx/          headers.cpp : l'API compile en C++20
 tests/fixtures/     exercices pièges (exercises/) et catalogue cassé (broken/)
+gui/                application Qt 6 (C++17, CMake ; compile aussi libtrainer depuis src/)
+  src/engine.*        enveloppe RAII de libtrainer ; erreurs C -> exceptions ;
+                      runCheck() thread-safe (copie de l'exercice) -> shared_ptr<CheckResult>
+  src/catalogview.*   QTreeWidget langage > thème > exercice (id dans Qt::UserRole)
+  src/exerciseview.*  énoncé (Markdown), boutons, résultats, correction ; vérification
+                      dans un thread (QtConcurrent::run + QFutureWatcher)
+  src/mainwindow.*    assemblage, barre d'outils (Suivant, Actualiser), QSettings,
+                      QFileSystemWatcher sur le dossier de progression (mises à jour
+                      venant du terminal / de VS Code)
+  src/format.*        mise en forme Markdown / HTML (fonctions libres)
+  tests/test_gui.cpp  QTest : parcours complet d'un élève en mode « offscreen »
 ```
 
 Construction : `src/core` + `src/util` produisent `build/<variante>/libtrainer.a` ;
-`src/cli` produit `trainer`. Les en-têtes de `src/cli` sont invisibles du moteur
+`src/cli` produit `trainer` (Makefile) ; `make gui` produit `trainer-gui` (CMake). Les en-têtes de `src/cli` sont invisibles du moteur
 (`-Isrc/cli` est réservé à la CLI et aux tests).
 
 ## Conventions
@@ -165,6 +176,16 @@ const runner *runner_for(const char *lang);
    fs.h (fs_read_file, fs_write_file, fs_mkdir_p, fs_copy_tree, fs_remove_tree,
    fs_make_temp_dir, path_join, fs_absolute...) */
 ```
+
+## Application Qt : règles
+
+- Les vues mémorisent un **id d'exercice**, jamais un pointeur : `Engine::reload()`
+  invalide les pointeurs du catalogue.
+- La vérification tourne dans un thread avec sa propre copie de l'exercice
+  (`exercise_load`) ; la progression est enregistrée dans le thread principal.
+- `ExerciseView::confirm` est injectable : les tests évitent ainsi les boîtes de dialogue.
+- Les widgets ont un `objectName` (`checkButton`, `tests`...) pour que les tests les
+  retrouvent avec `findChild`.
 
 ## Commandes
 
