@@ -5,7 +5,10 @@
 #   make asan         mêmes tests, compilés avec AddressSanitizer/UBSan
 #   make valgrind     tests unitaires + un check complet sous valgrind
 #   make release      binaire optimisé dans build/release/
+#   make gui          application graphique Qt (./trainer-gui), via CMake
+#   make gui-test     test de l'application (parcours d'élève simulé)
 #   make install      installe dans $(PREFIX) (défaut : /usr/local)
+#   make install-gui  installe aussi l'application graphique et son menu
 #                     ex. : make install PREFIX=$HOME/.local
 #                     ($HOME plutôt que ~ : zsh ne développe pas ~ après '=')
 #   make clean
@@ -13,7 +16,7 @@
 # Chaque variante (debug, asan, release) a son propre dossier build/<variante>
 # pour ne jamais mélanger des .o compilés avec des options différentes.
 
-VERSION  := 0.3.0
+VERSION  := 0.4.0
 PREFIX   ?= /usr/local
 DATADIR  ?= $(PREFIX)/share/trainer
 BUILD    ?= debug
@@ -69,7 +72,8 @@ VALGRIND := valgrind --quiet --leak-check=full --error-exitcode=99 \
             --errors-for-leak-kinds=definite,indirect,possible \
             --child-silent-after-fork=yes
 
-.PHONY: all lib test unit e2e cxx-headers asan valgrind release install uninstall clean
+.PHONY: all lib test unit e2e cxx-headers asan valgrind release install uninstall clean \
+        gui gui-test install-gui
 
 all: trainer
 
@@ -132,11 +136,28 @@ install: release
 	mkdir -p $(DESTDIR)$(DATADIR)
 	cp -R exercises $(DESTDIR)$(DATADIR)/
 
+# --- Application graphique : CMake s'occupe de Qt (voir gui/CMakeLists.txt).
+GUI_BUILD := build/gui
+
+gui:
+	cmake -S gui -B $(GUI_BUILD) -DCMAKE_BUILD_TYPE=Debug
+	cmake --build $(GUI_BUILD) -j
+	cp $(GUI_BUILD)/trainer-gui trainer-gui
+
+gui-test: gui
+	ctest --test-dir $(GUI_BUILD) --output-on-failure
+
+install-gui:
+	cmake -S gui -B build/gui-release -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX)
+	cmake --build build/gui-release -j
+	DESTDIR=$(DESTDIR) cmake --install build/gui-release
+
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/trainer
+	rm -f $(DESTDIR)$(PREFIX)/bin/trainer $(DESTDIR)$(PREFIX)/bin/trainer-gui
+	rm -f $(DESTDIR)$(PREFIX)/share/applications/cl-trainer.desktop
 	rm -rf $(DESTDIR)$(DATADIR)
 
 clean:
-	rm -rf build trainer
+	rm -rf build trainer trainer-gui
 
 -include $(ALL_OBJ:.o=.d)

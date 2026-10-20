@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=CL-Trainer
+GenericName=Entraînement à la programmation
+Comment=Exercices C++, Git, C# et Rust avec correction automatique
+Exec=trainer-gui
+Icon=applications-development
+Terminal=false
+Categories=Development;Education;
+Keywords=C++;Git;Rust;C#;exercices;programmation;
