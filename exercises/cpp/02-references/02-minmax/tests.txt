@@ -1,0 +1,27 @@
+=== test: exemple
+--- stdin
+4 -2 9 3
+--- stdout
+-2 9
+
+=== test: une seule valeur
+--- stdin
+7
+--- stdout
+7 7
+
+=== test: entrée vide
+--- stdout
+vide
+
+=== test: que des négatifs [hidden]
+--- stdin
+-8 -3 -12 -5
+--- stdout
+-12 -3
+
+=== test: croissant puis décroissant [hidden]
+--- stdin
+1 2 3 4 5 4 3 2 1 0
+--- stdout
+0 5

@@ -1,0 +1,33 @@
+=== test: exemple
+--- stdin
+Bonjour, le monde!
+--- stdout
+Bonjour (7)
+
+=== test: ponctuation et symboles
+--- stdin
+le C++ est un langage... compile
+--- stdout
+langage (7)
+
+=== test: égalité : le premier gagne [hidden]
+--- stdin
+abc def ghi
+--- stdout
+abc (3)
+
+=== test: aucun mot [hidden]
+--- stdin
+123 !!! 42
+--- stdout
+aucun mot
+
+=== test: entrée vide [hidden]
+--- stdout
+aucun mot
+
+=== test: chiffres au milieu [hidden]
+--- stdin
+r2d2 c3po robot
+--- stdout
+robot (5)
