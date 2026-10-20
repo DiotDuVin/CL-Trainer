@@ -1,0 +1,41 @@
+=== test: exemple
+--- stdin
+3 4 +
+1 +
+4 0 /
+--- stdout
+7
+erreur : pile insuffisante
+erreur : division par zéro
+
+=== test: expressions valides
+--- stdin
+5 1 2 + 4 * + 3 -
+10 3 /
+-4 2 *
+--- stdout
+14
+3
+-8
+
+=== test: erreurs [hidden]
+--- stdin
+1 2
+
+2 x +
+3 4 %
+--- stdout
+erreur : expression incomplète
+erreur : expression incomplète
+erreur : jeton inconnu : x
+erreur : jeton inconnu : %
+
+=== test: ordre des opérandes [hidden]
+--- stdin
+5 3 -
+3 5 -
+20 4 /
+--- stdout
+2
+-2
+5

@@ -1,0 +1,31 @@
+=== test: exemple
+--- stdin
+rect 2 3
+circle 1
+triangle 3 4 5
+--- stdout
+rectangle : aire 6.00, périmètre 10.00
+cercle : aire 3.14, périmètre 6.28
+triangle : aire 6.00, périmètre 12.00
+aire totale : 15.14
+
+=== test: grand cercle
+--- stdin
+circle 10
+--- stdout
+cercle : aire 314.16, périmètre 62.83
+aire totale : 314.16
+
+=== test: triangle équilatéral [hidden]
+--- stdin
+triangle 2 2 2
+rect 0.5 4
+--- stdout
+triangle : aire 1.73, périmètre 6.00
+rectangle : aire 2.00, périmètre 9.00
+aire totale : 3.73
+
+=== test: aucune forme [hidden]
+--- stdin
+--- stdout
+aire totale : 0.00

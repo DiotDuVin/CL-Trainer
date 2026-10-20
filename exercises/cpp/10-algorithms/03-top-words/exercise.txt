@@ -1,0 +1,67 @@
+id: cpp.algorithms.top-words
+title: Les mots les plus fréquents
+lang: cpp
+level: 3
+topic: algorithms
+tags: map, vector, sort, lambda
+requires: cpp.algorithms.leaderboard
+files: main.cpp
+estimated_min: 25
+
+## statement
+La première ligne contient un entier K. Le reste de l'entrée est un texte
+(mots en minuscules, sans ponctuation). Affiche les K mots les plus fréquents,
+du plus fréquent au moins fréquent, au format `mot n`. En cas d'égalité, ordre
+alphabétique. S'il y a moins de K mots distincts, affiche-les tous.
+
+    entrée : 2                       sortie : le 3
+             le chat et le chien et le        et 2
+
+## hints
+Deux étapes, deux structures : un `std::map<std::string, int>` pour compter
+(chapitre 9), puis un `std::vector<std::pair<std::string, int>>` pour trier
+par fréquence. Un `map` ne peut être trié que par sa clé.
+---
+Le vecteur se construit directement à partir du map :
+`std::vector<std::pair<std::string, int>> v(counts.begin(), counts.end());`
+---
+Pour n'afficher que K éléments : `std::min(k, v.size())`. Ou bien
+`std::partial_sort`, qui ne trie que les K premiers.
+
+## explanation
+Solution de référence :
+
+    std::map<std::string, int> counts;
+    while (std::cin >> word)
+        ++counts[word];
+
+    std::vector<std::pair<std::string, int>> v(counts.begin(), counts.end());
+    std::sort(v.begin(), v.end(), [](const auto &a, const auto &b) {
+        if (a.second != b.second)
+            return a.second > b.second;   // fréquence décroissante
+        return a.first < b.first;         // puis alphabétique
+    });
+
+    for (std::size_t i = 0; i < std::min(k, v.size()); ++i)
+        std::cout << v[i].first << ' ' << v[i].second << '\n';
+
+Points importants :
+
+- **Chaque structure pour ce qu'elle fait bien** : le `map` compte (recherche
+  rapide par mot), le `vector` se trie selon n'importe quel critère. On passe
+  de l'un à l'autre avec le constructeur à partir d'un intervalle.
+- **`const auto &` dans les paramètres d'une lambda** (C++14, « lambda
+  générique ») évite d'écrire le long type `std::pair<std::string, int>`.
+- **`std::partial_sort(v.begin(), v.begin() + m, v.end(), cmp)`** trierait
+  seulement les m premiers, en O(n log m) : utile si K est petit devant le
+  nombre de mots.
+- **Ce motif (compter puis trier par fréquence)** est un classique des
+  entretiens techniques. Sa version Unix :
+  `tr ' ' '\n' | sort | uniq -c | sort -rn | head`.
+
+## common_mistakes
+- Vouloir trier le `std::map` lui-même par valeur : impossible, il est
+  toujours trié par clé.
+- Afficher K éléments quand il y a moins de K mots distincts : accès hors
+  limites.
+- Oublier le critère alphabétique : l'ordre des ex-aequo n'est pas déterminé.

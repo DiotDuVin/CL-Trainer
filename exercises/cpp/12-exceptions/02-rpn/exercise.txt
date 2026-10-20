@@ -1,0 +1,92 @@
+id: cpp.exceptions.rpn
+title: Calculatrice polonaise inverse
+lang: cpp
+level: 4
+topic: exceptions
+tags: exceptions, runtime_error, stack, parsing
+requires: cpp.exceptions.strict-parse
+files: main.cpp
+estimated_min: 30
+
+## statement
+En **notation polonaise inverse** (RPN), l'opérateur suit ses opérandes :
+`3 4 +` vaut 7, et `5 1 2 + 4 * + 3 -` vaut 14. On l'évalue avec une pile :
+un nombre est empilé ; un opérateur dépile deux valeurs (d'abord `b`, puis `a`),
+calcule `a op b` et empile le résultat.
+
+Écris `long evaluate(const std::string &expression)` (opérateurs `+ - * /`,
+division entière). En cas d'erreur, elle **lance** une `std::runtime_error`
+avec l'un de ces messages :
+
+- `pile insuffisante` : un opérateur trouve moins de deux valeurs ;
+- `division par zéro` ;
+- `jeton inconnu : X` : X n'est ni un entier ni un opérateur ;
+- `expression incomplète` : à la fin, la pile ne contient pas exactement une
+  valeur.
+
+Le `main` fourni évalue chaque ligne et affiche le résultat ou `erreur : message` :
+
+    entrée : 3 4 +            sortie : 7
+             1 +                       erreur : pile insuffisante
+             4 0 /                     erreur : division par zéro
+
+## hints
+Découpe la ligne avec `std::istringstream in(expression);` puis
+`while (in >> token)`. La pile peut être un `std::vector<long>`.
+---
+Pour reconnaître un nombre, réutilise l'idée de l'exercice précédent :
+`std::stol(token, &pos)` dans un `try`, et vérifie `pos == token.size()`.
+Attention : `std::stol("-")` lance `std::invalid_argument`. Teste donc les
+opérateurs AVANT d'essayer de convertir.
+---
+`throw std::runtime_error("jeton inconnu : " + token);`
+
+## explanation
+Solution de référence :
+
+    long evaluate(const std::string &expression) {
+        std::vector<long> stack;
+        std::istringstream in(expression);
+        std::string token;
+        while (in >> token) {
+            if (token == "+" || token == "-" || token == "*" || token == "/") {
+                if (stack.size() < 2)
+                    throw std::runtime_error("pile insuffisante");
+                const long b = stack.back(); stack.pop_back();
+                const long a = stack.back(); stack.pop_back();
+                if (token == "/" && b == 0)
+                    throw std::runtime_error("division par zéro");
+                stack.push_back(token == "+" ? a + b : token == "-" ? a - b
+                                : token == "*" ? a * b : a / b);
+            } else {
+                stack.push_back(to_number(token)); // lance « jeton inconnu »
+            }
+        }
+        if (stack.size() != 1)
+            throw std::runtime_error("expression incomplète");
+        return stack.back();
+    }
+
+où `to_number` convertit avec `std::stol` et transforme ses exceptions en
+`std::runtime_error("jeton inconnu : " + token)`.
+
+Points importants :
+
+- **Le code « normal » reste lisible** : les vérifications lancent, et
+  `evaluate` n'a pas à transporter de code d'erreur à travers ses boucles.
+- **Traduire une exception** (`invalid_argument` de `stol` en `runtime_error`
+  avec notre message) : on attrape une exception de bas niveau pour lancer
+  celle qui a du sens au niveau de `evaluate`.
+- **Le vecteur `stack` est libéré** même quand une exception sort de la
+  fonction : c'est RAII.
+- **L'ordre `b` puis `a`** compte pour `-` et `/` : `5 3 -` vaut 2, pas -2.
+- **Une ligne d'erreur n'arrête pas le programme** : `main` attrape par ligne
+  et passe à la suivante.
+
+## common_mistakes
+- Inverser `a` et `b` : soustractions et divisions fausses.
+- Convertir avant de tester les opérateurs : `-` seul serait vu comme un
+  nombre invalide.
+- Oublier le test final : « 1 2 » renverrait 2 au lieu de signaler une
+  expression incomplète.
+- Diviser par zéro avant de tester : comportement indéfini (souvent SIGFPE).

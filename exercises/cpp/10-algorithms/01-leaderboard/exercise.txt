@@ -1,0 +1,59 @@
+id: cpp.algorithms.leaderboard
+title: Classement avec std::sort et une lambda
+lang: cpp
+level: 2
+topic: algorithms
+tags: sort, lambda, struct
+requires: cpp.maps.word-count
+files: main.cpp
+estimated_min: 15
+
+## statement
+Chaque ligne de l'entrée contient un nom de joueur et son score. Affiche le
+classement : score **décroissant**, et en cas d'égalité, nom **alphabétique**.
+Chaque ligne commence par le rang (à partir de 1) :
+
+    entrée : linus 50        sortie : 1. ada 70
+             ada 70                   2. grace 50
+             grace 50                 3. linus 50
+
+Les noms sont distincts. Utilise `std::sort` avec une **lambda** comme
+comparateur, sans écrire de tri toi-même.
+
+## hints
+Range les joueurs dans un `std::vector<Player>`, avec
+`struct Player { std::string name; int score; };`.
+---
+Le comparateur renvoie `true` si `a` doit passer AVANT `b`. Pour un score
+décroissant : `a.score > b.score`. En cas d'égalité, compare les noms.
+---
+Prends les paramètres de la lambda en `const Player &` pour éviter une copie à
+chaque comparaison.
+
+## explanation
+Solution de référence :
+
+    std::sort(players.begin(), players.end(), [](const Player &a, const Player &b) {
+        if (a.score != b.score)
+            return a.score > b.score;   // score décroissant
+        return a.name < b.name;         // puis nom croissant
+    });
+
+Points importants :
+
+- **Le comparateur définit un ordre strict** : il renvoie `true` seulement si
+  `a` doit passer **strictement** avant `b`. Avec `>=`, le tri peut produire
+  un résultat faux, voire lire hors du tableau.
+- **Critère secondaire** : le test d'égalité sur le score, puis la
+  comparaison des noms. C'est le modèle de tout tri multi-critères.
+- **Variante** : `std::tie(b.score, a.name) < std::tie(a.score, b.name)`
+  (en-tête <tuple>) compare plusieurs champs d'un coup. C'est concis, mais
+  l'inversion des rôles pour l'ordre décroissant est moins lisible.
+- **Sans critère secondaire**, l'ordre des ex-aequo dépendrait de
+  l'implémentation de `std::sort`, qui n'est pas stable.
+
+## common_mistakes
+- `return a.score >= b.score;` : ce n'est pas un ordre strict.
+- Oublier le critère des noms : l'ordre des ex-aequo devient imprévisible.
+- Écrire son propre tri à bulles : plus long, plus lent (O(n²)), et sources de
+  bugs.

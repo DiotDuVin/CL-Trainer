@@ -1,0 +1,46 @@
+=== test: exemple
+--- stdin
+add 2 Dune
+borrow Dune
+borrow Dune
+borrow Dune
+return Dune
+list
+--- stdout
+ok
+ok
+ok
+indisponible : Dune
+ok
+Dune : 1/2
+
+=== test: plusieurs livres
+--- stdin
+add 1 Le Petit Prince
+add 3 Candide
+borrow Le Petit Prince
+add 1 Candide
+list
+--- stdout
+ok
+ok
+ok
+ok
+Candide : 4/4
+Le Petit Prince : 0/1
+
+=== test: livres inconnus [hidden]
+--- stdin
+borrow Ulysse
+return Ulysse
+list
+add 1 Dune
+return Dune
+list
+--- stdout
+indisponible : Ulysse
+pas emprunté : Ulysse
+(aucun livre)
+ok
+pas emprunté : Dune
+Dune : 1/1

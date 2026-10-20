@@ -1,0 +1,75 @@
+id: cpp.exceptions.strict-parse
+title: Une conversion stricte qui lance des exceptions
+lang: cpp
+level: 3
+topic: exceptions
+tags: exceptions, stoi, invalid_argument, out_of_range
+requires: cpp.templates.clamp
+files: main.cpp
+estimated_min: 20
+
+## statement
+`std::stoi` a un défaut : `std::stoi("12abc")` renvoie 12 sans erreur. Écris
+une fonction plus stricte :
+
+    int parse_int(const std::string &text)
+
+Elle renvoie l'entier si **tout** le texte est un nombre, et sinon **lance** :
+
+- `std::invalid_argument` si le texte n'est pas un nombre, ou s'il contient
+  autre chose après le nombre (`"12abc"`, `"4 2"`) ;
+- `std::out_of_range` si le nombre ne tient pas dans un `int`.
+
+Le `main` fourni lit l'entrée ligne par ligne, appelle `parse_int`, et attrape
+les exceptions pour afficher le bon message :
+
+    entrée : 42              sortie : 42
+             12abc                    pas un nombre
+             99999999999              hors limites
+
+## hints
+`std::stoi(text, &pos)` range dans `pos` (un `std::size_t`) le nombre de
+caractères utilisés. Si `pos != text.size()`, il reste des caractères en trop.
+---
+Laisse `std::stoi` lancer lui-même ses exceptions (`invalid_argument` pour
+« abc » ou une ligne vide, `out_of_range` pour un nombre trop grand) : tu n'as
+à lancer toi-même que le cas « caractères en trop ».
+---
+`throw std::invalid_argument("caractères en trop après le nombre");`
+(en-tête <stdexcept>).
+
+## explanation
+Solution de référence :
+
+    int parse_int(const std::string &text) {
+        std::size_t pos = 0;
+        const int value = std::stoi(text, &pos);   // peut lancer
+        if (pos != text.size())
+            throw std::invalid_argument("caractères en trop après le nombre");
+        return value;
+    }
+
+Points importants :
+
+- **Une partie des erreurs vient de `std::stoi`**, l'autre de notre propre
+  `throw`. Pour l'appelant, c'est pareil : il attrape `std::invalid_argument`
+  quelle que soit son origine.
+- **`parse_int` ne gère rien elle-même** : elle détecte et signale. C'est
+  `main`, qui sait quoi afficher, qui attrape. Le traitement de l'erreur se
+  fait au niveau qui sait y réagir.
+- **L'ordre des `catch`** dans `main` : ici les deux types sont des cousins
+  (tous deux dérivés de `std::logic_error`), l'ordre n'a pas d'importance. Si
+  l'on ajoutait `catch (const std::exception &)`, il faudrait le mettre en
+  dernier.
+- **`std::stoi` accepte des espaces au début et un signe** (`" 42"`, `"+5"`) :
+  c'est le comportement de `strtol` en C, dont il s'inspire.
+- Pour un échec fréquent et attendu (une saisie utilisateur), une version qui
+  renvoie `std::optional<int>` serait une alternative raisonnable aux
+  exceptions.
+
+## common_mistakes
+- Utiliser `std::stoi` seul : « 12abc » est accepté.
+- Attraper l'exception dans `parse_int` et renvoyer 0 : l'appelant ne peut
+  plus distinguer « 0 » d'une erreur.
+- Utiliser `atoi` : aucune détection d'erreur du tout (« abc » donne 0).
+- `catch (std::invalid_argument e)` : copie inutile ; toujours `const &`.

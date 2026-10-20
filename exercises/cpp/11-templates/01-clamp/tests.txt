@@ -1,0 +1,27 @@
+=== test: entiers
+--- stdin
+int 0 10 -5 3 42
+--- stdout
+0 3 10
+1 dans [0, 10]
+
+=== test: réels
+--- stdin
+double -1.5 1.5 0.25 -3 1.5 2
+--- stdout
+0.25 -1.5 1.5 1.5
+2 dans [-1.5, 1.5]
+
+=== test: textes (ordre alphabétique) [hidden]
+--- stdin
+text b m apple dog zebra m
+--- stdout
+b dog m m
+2 dans [b, m]
+
+=== test: bornes égales [hidden]
+--- stdin
+int 5 5 1 5 9
+--- stdout
+5 5 5
+1 dans [5, 5]

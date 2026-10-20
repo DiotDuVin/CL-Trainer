@@ -1,0 +1,28 @@
+=== test: exemple
+--- stdin
+0 400
+125 -3 300 999 0
+--- stdout
+12.5 30.0 0.0
+somme 42.5
+
+=== test: tout est valide
+--- stdin
+-100 100
+-100 0 100 55
+--- stdout
+-10.0 0.0 10.0 5.5
+somme 5.5
+
+=== test: tout est aberrant [hidden]
+--- stdin
+10 20
+1 2 30 40
+--- stdout
+somme 0.0
+
+=== test: aucune mesure [hidden]
+--- stdin
+0 10
+--- stdout
+somme 0.0

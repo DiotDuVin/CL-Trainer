@@ -1,0 +1,47 @@
+=== test: exemple
+--- stdin
+add 5
+mul 3
+neg
+history
+undo
+mul 0
+--- stdout
+= 5
+= 15
+= -15
+historique : add 5 ; mul 3 ; neg
+= 15
+commande invalide : mul 0
+
+=== test: tout annuler
+--- stdin
+add 2
+mul -4
+undo
+undo
+undo
+history
+--- stdout
+= 2
+= -8
+= 2
+= 0
+rien à annuler
+historique : (vide)
+
+=== test: commandes invalides [hidden]
+--- stdin
+sub 3
+add
+mul x
+neg
+mul 2
+history
+--- stdout
+commande invalide : sub 3
+commande invalide : add
+commande invalide : mul x
+= 0
+= 0
+historique : neg ; mul 2

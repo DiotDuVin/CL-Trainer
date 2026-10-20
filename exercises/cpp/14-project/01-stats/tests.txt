@@ -1,0 +1,43 @@
+=== test: exemple
+--- stdin
+2 4 4 4 5 5 7 9
+--- stdout
+valeurs : 8
+moyenne 5.00
+médiane 4.50
+écart-type 2.00
+
+=== test: nombre impair, non trié
+--- stdin
+9 1 5
+--- stdout
+valeurs : 3
+moyenne 5.00
+médiane 5.00
+écart-type 3.27
+
+=== test: décimales [hidden]
+--- stdin
+0.5 1.5
+--- stdout
+valeurs : 2
+moyenne 1.00
+médiane 1.00
+écart-type 0.50
+
+=== test: une seule valeur [hidden]
+--- stdin
+-3
+--- stdout
+valeurs : 1
+moyenne -3.00
+médiane -3.00
+écart-type 0.00
+
+=== test: aucune valeur [hidden]
+--- stdin
+--- stdout
+valeurs : 0
+moyenne 0.00
+médiane 0.00
+écart-type 0.00

@@ -1,0 +1,103 @@
+id: cpp.inheritance.undo
+title: Annuler des commandes
+lang: cpp
+level: 4
+topic: inheritance
+tags: virtual, interface, unique_ptr, factory, undo
+requires: cpp.inheritance.shapes
+files: main.cpp
+estimated_min: 30
+
+## statement
+Une calculatrice part de la valeur 0 et applique des **commandes**, qu'on
+peut **annuler** dans l'ordre inverse. Chaque commande est un objet qui
+implémente l'interface `Command` :
+
+- `long apply(long v) const` : la nouvelle valeur ;
+- `long revert(long v) const` : annule l'effet (`revert(apply(v)) == v`) ;
+- `std::string describe() const` : la commande telle qu'elle a été tapée.
+
+`Add` est fournie. Écris `Mul` (`mul N` : multiplie par N) et `Neg` (`neg` :
+change le signe), puis complète la fonction **fabrique**
+`std::unique_ptr<Command> make_command(const std::string &line)`, qui renvoie
+la commande correspondant à la ligne, ou `nullptr` si elle est invalide :
+nom inconnu, nombre absent, ou `mul 0` (impossible à annuler).
+
+Le `main` fourni gère `undo`, `history` et l'affichage :
+
+    entrée : add 5           sortie : = 5
+             mul 3                    = 15
+             neg                      = -15
+             history                  historique : add 5 ; mul 3 ; neg
+             undo                     = 15
+             mul 0                    commande invalide : mul 0
+
+## hints
+`Mul` ressemble à `Add` : un membre pour le facteur, et `revert` divise
+(la division est exacte, puisque la valeur a été multipliée par ce facteur).
+---
+Dans `make_command`, lis la ligne avec `std::istringstream in(line);` puis
+`in >> name`. Pour `add` et `mul`, `if (!(in >> n)) return nullptr;`.
+---
+Une fonction qui renvoie `std::unique_ptr<Command>` peut renvoyer
+`std::make_unique<Mul>(n)` : le `unique_ptr<Mul>` est converti
+automatiquement vers sa base.
+
+## explanation
+Solution de référence :
+
+    class Mul : public Command {
+    public:
+        explicit Mul(long factor) : factor_(factor) {}
+        long apply(long v) const override { return v * factor_; }
+        long revert(long v) const override { return v / factor_; }
+        std::string describe() const override { return "mul " + std::to_string(factor_); }
+    private:
+        long factor_;
+    };
+
+    class Neg : public Command {
+    public:
+        long apply(long v) const override { return -v; }
+        long revert(long v) const override { return -v; }
+        std::string describe() const override { return "neg"; }
+    };
+
+    std::unique_ptr<Command> make_command(const std::string &line) {
+        std::istringstream in(line);
+        std::string name;
+        long n = 0;
+        if (!(in >> name))
+            return nullptr;
+        if (name == "neg")
+            return std::make_unique<Neg>();
+        if (!(in >> n))
+            return nullptr;
+        if (name == "add")
+            return std::make_unique<Add>(n);
+        if (name == "mul" && n != 0)
+            return std::make_unique<Mul>(n);
+        return nullptr;
+    }
+
+Points importants :
+
+- **Le patron « commande »** : une action devient un objet, qu'on peut
+  stocker, afficher, rejouer ou annuler. C'est ainsi que fonctionnent le
+  Ctrl+Z des éditeurs et l'historique de nombreux logiciels.
+- **La fabrique** est le seul endroit qui connaît les classes concrètes ;
+  `main` et l'historique ne manipulent que des `Command`. Ajouter une
+  commande `sub` ne touche que la fabrique et la nouvelle classe.
+- **`nullptr` comme « pas de commande »** : un `unique_ptr` vide se teste
+  avec `if (!cmd)`. Une exception serait aussi possible ; pour une saisie
+  invalide, attendue et fréquente, la valeur de retour est plus simple
+  (chapitre 12).
+- **Conversion dérivée vers base** : `unique_ptr<Mul>` devient
+  `unique_ptr<Command>` sans cast, puisqu'un `Mul` est un `Command`.
+
+## common_mistakes
+- Accepter `mul 0` : impossible à annuler, et `revert` diviserait par zéro.
+- Pour `neg`, lire un nombre de toute façon : `neg` seul serait refusé.
+- Écrire `revert` de `Neg` comme `v` : l'annulation ne ferait rien.
+- Stocker des `Command` par valeur dans un `std::vector<Command>` : impossible
+  (classe abstraite), et ce serait du *slicing* avec une base concrète.

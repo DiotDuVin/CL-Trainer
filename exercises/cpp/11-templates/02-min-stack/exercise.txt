@@ -1,0 +1,88 @@
+id: cpp.templates.min-stack
+title: Une pile générique qui connaît son minimum
+lang: cpp
+level: 4
+topic: templates
+tags: class-template, data-structure, complexity
+requires: cpp.templates.clamp
+files: main.cpp
+estimated_min: 30
+
+## statement
+Complète la **classe template** `MinStack<T>`, une pile qui donne à tout moment
+son plus petit élément, **en temps constant** (sans parcourir la pile) :
+
+- `void push(const T &value)` ;
+- `void pop()` (appelé seulement si la pile n'est pas vide) ;
+- `const T &top() const` et `const T &min() const` (pile non vide) ;
+- `bool empty() const`.
+
+Le `main` fourni l'utilise avec des entiers (`int`) **et** des mots
+(`std::string`) : chaque ligne commence par `int` ou `text`, puis donne une
+commande (`push VALEUR`, `pop`, `top`, `min`). Il y a une pile par type.
+
+    entrée : int push 5      sortie : 2
+             int push 2               5
+             int push 8
+             int min
+             int pop
+             int pop
+             int min
+
+## hints
+L'astuce classique : une deuxième pile, `mins_`, dont le sommet est toujours
+le minimum de la pile principale. À chaque `push`, empile sur `mins_` le plus
+petit entre la nouvelle valeur et l'ancien minimum.
+---
+Au `pop`, dépile les DEUX piles : `mins_` retrouve automatiquement le minimum
+d'avant.
+---
+Les deux piles peuvent être des `std::vector<T>` (`push_back`, `pop_back`,
+`back`). Comme pour `clamp_to`, n'utilise que `<` pour comparer.
+
+## explanation
+Solution de référence :
+
+    template <typename T>
+    class MinStack {
+    public:
+        void push(const T &value) {
+            items_.push_back(value);
+            if (mins_.empty() || value < mins_.back())
+                mins_.push_back(value);
+            else
+                mins_.push_back(mins_.back());
+        }
+        void pop() {
+            items_.pop_back();
+            mins_.pop_back();
+        }
+        const T &top() const { return items_.back(); }
+        const T &min() const { return mins_.back(); }
+        bool empty() const { return items_.empty(); }
+
+    private:
+        std::vector<T> items_;
+        std::vector<T> mins_; // mins_[i] = minimum de items_[0..i]
+    };
+
+Points importants :
+
+- **Un seul modèle, deux classes** : `MinStack<int>` et `MinStack<std::string>`
+  sont générées par le compilateur, chacune avec ses propres membres.
+- **L'invariant** : `mins_[i]` est le minimum des éléments `0..i`. `push` et
+  `pop` le maintiennent en O(1), et `min()` le lit en O(1). Recalculer le
+  minimum à chaque `min()` coûterait O(n).
+- **On échange de la mémoire contre du temps** : deux fois plus de place pour un
+  minimum instantané. C'est un compromis fréquent, et une question classique
+  d'entretien technique.
+- **`const T &` en retour de `top()` et `min()`** : pas de copie d'une
+  éventuelle grosse valeur, et l'appelant ne peut pas modifier la pile.
+
+## common_mistakes
+- Ne garder qu'un seul minimum (une variable) : après un `pop` du minimum, on
+  ne sait plus quel est le suivant sans tout reparcourir.
+- N'empiler sur `mins_` que lorsque la valeur est plus petite, sans adapter
+  `pop` : les deux piles se désynchronisent.
+- Écrire `MinStack` seulement pour `int` : le `main` ne compile plus pour les
+  mots.
