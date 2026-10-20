@@ -51,6 +51,7 @@ add_library(trainer-ui STATIC
     src/engine.cpp src/engine.h
     src/catalogview.cpp src/catalogview.h
     src/exerciseview.cpp src/exerciseview.h
+    src/lessonview.cpp src/lessonview.h
     src/mainwindow.cpp src/mainwindow.h
     src/format.cpp src/format.h)
 target_include_directories(trainer-ui PUBLIC src)

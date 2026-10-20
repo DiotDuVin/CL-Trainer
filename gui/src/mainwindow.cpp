@@ -8,6 +8,7 @@
 #include <QProgressBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QToolBar>
 #include <QVBoxLayout>
@@ -15,6 +16,7 @@
 #include "catalogview.h"
 #include "engine.h"
 #include "exerciseview.h"
+#include "lessonview.h"
 
 MainWindow::MainWindow(Engine &engine, QWidget *parent)
     : QMainWindow(parent), engine_(engine)
@@ -35,13 +37,18 @@ MainWindow::MainWindow(Engine &engine, QWidget *parent)
     leftLayout->addWidget(progressBar_);
     leftLayout->addWidget(weakLabel_);
 
-    // --- Colonne de droite : l'exercice sélectionné
+    // --- Colonne de droite : l'exercice ou le cours sélectionné. Un
+    // QStackedWidget empile des widgets et n'en montre qu'un à la fois.
     exercise_ = new ExerciseView(engine_);
+    lesson_ = new LessonView(engine_);
+    stack_ = new QStackedWidget;
+    stack_->addWidget(exercise_);
+    stack_->addWidget(lesson_);
 
     auto *splitter = new QSplitter;
     splitter->setObjectName(QStringLiteral("splitter"));
     splitter->addWidget(left);
-    splitter->addWidget(exercise_);
+    splitter->addWidget(stack_);
     splitter->setStretchFactor(1, 3);
     splitter->setSizes({ 340, 810 }); // largeurs initiales (remplacées par QSettings)
     setCentralWidget(splitter);
@@ -61,10 +68,21 @@ MainWindow::MainWindow(Engine &engine, QWidget *parent)
     tools->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
     // --- Liaisons entre les vues
-    connect(catalog_, &CatalogView::exerciseSelected, exercise_, &ExerciseView::showExercise);
+    connect(catalog_, &CatalogView::exerciseSelected, this, [this](const QString &id) {
+        exercise_->showExercise(id);
+        stack_->setCurrentWidget(exercise_);
+    });
+    connect(catalog_, &CatalogView::lessonSelected, this, [this](const QString &id) {
+        lesson_->showLesson(id);
+        stack_->setCurrentWidget(lesson_);
+    });
+    auto showMessage = [this](const QString &text) { statusBar()->showMessage(text, 10000); };
     connect(exercise_, &ExerciseView::progressChanged, this, &MainWindow::refreshProgress);
-    connect(exercise_, &ExerciseView::message, this,
-            [this](const QString &text) { statusBar()->showMessage(text, 10000); });
+    connect(exercise_, &ExerciseView::message, this, showMessage);
+    connect(exercise_, &ExerciseView::openLesson, catalog_, &CatalogView::selectId);
+    connect(lesson_, &LessonView::progressChanged, this, &MainWindow::refreshProgress);
+    connect(lesson_, &LessonView::message, this, showMessage);
+    connect(lesson_, &LessonView::openExercise, catalog_, &CatalogView::selectId);
 
     debounce_.setSingleShot(true);
     debounce_.setInterval(300);
@@ -84,7 +102,7 @@ MainWindow::MainWindow(Engine &engine, QWidget *parent)
     QSettings settings;
     restoreGeometry(settings.value(QStringLiteral("window/geometry")).toByteArray());
     splitter->restoreState(settings.value(QStringLiteral("window/splitter")).toByteArray());
-    if (!catalog_->selectExercise(settings.value(QStringLiteral("exercise/last")).toString()))
+    if (!catalog_->selectId(settings.value(QStringLiteral("exercise/last")).toString()))
         goToNext();
     if (!settings.contains(QStringLiteral("window/geometry")))
         resize(1150, 720);
@@ -96,7 +114,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings.setValue(QStringLiteral("window/geometry"), saveGeometry());
     if (auto *splitter = findChild<QSplitter *>(QStringLiteral("splitter")))
         settings.setValue(QStringLiteral("window/splitter"), splitter->saveState());
-    settings.setValue(QStringLiteral("exercise/last"), exercise_->exerciseId());
+    settings.setValue(QStringLiteral("exercise/last"), catalog_->currentId());
     QMainWindow::closeEvent(event);
 }
 
@@ -108,6 +126,11 @@ void MainWindow::watchProgress()
     QDir().mkpath(dir);
     if (!watcher_.directories().contains(dir))
         watcher_.addPath(dir);
+}
+
+bool MainWindow::showingLesson() const
+{
+    return stack_->currentWidget() == lesson_;
 }
 
 void MainWindow::goToNext()
@@ -130,9 +153,14 @@ void MainWindow::goToNext()
     case RECO_NEXT:
         statusBar()->showMessage(tr("Prochain exercice de la progression."), 10000);
         break;
+    case RECO_LESSON:
+        statusBar()->showMessage(tr("Avant « %1 », lis le cours du chapitre.")
+                                     .arg(qs(r.ex->title)), 10000);
+        catalog_->selectId(qs(r.lesson_to_read->id));
+        return;
     }
     if (r.ex)
-        catalog_->selectExercise(qs(r.ex->id));
+        catalog_->selectId(qs(r.ex->id));
 }
 
 void MainWindow::reloadAll()
@@ -145,6 +173,7 @@ void MainWindow::reloadAll()
     }
     catalog_->populate(engine_);
     exercise_->refresh();
+    lesson_->refresh();
     updateSummary();
     statusBar()->showMessage(tr("Exercices et progression rechargés."), 5000);
 }
@@ -154,6 +183,7 @@ void MainWindow::refreshProgress()
     engine_.reloadProgress();
     catalog_->refreshStatuses(engine_);
     exercise_->refresh();
+    lesson_->refresh();
     updateSummary();
     watchProgress(); // le dossier a pu être créé entre-temps
 }

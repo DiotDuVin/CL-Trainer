@@ -15,6 +15,7 @@
 #include "catalogview.h"
 #include "engine.h"
 #include "exerciseview.h"
+#include "lessonview.h"
 #include "mainwindow.h"
 
 class GuiTest : public QObject {
@@ -34,7 +35,8 @@ void GuiTest::initTestCase()
     QVERIFY(tmp_.isValid());
     root_ = qEnvironmentVariable("TRAINER_ROOT");
     QVERIFY2(!root_.isEmpty(), "TRAINER_ROOT non défini (lancer via ctest)");
-    qputenv("TRAINER_EXERCISES", (root_ + "/exercises").toUtf8());
+    // Petit cours stable (1 cours + 2 exercices), indépendant du vrai catalogue.
+    qputenv("TRAINER_EXERCISES", (root_ + "/tests/fixtures/course").toUtf8());
     qputenv("TRAINER_WORKSPACE", tmp_.filePath("ws").toUtf8());
     qputenv("XDG_DATA_HOME", tmp_.filePath("data").toUtf8());
     qputenv("XDG_CONFIG_HOME", tmp_.filePath("config").toUtf8()); // QSettings
@@ -66,8 +68,18 @@ void GuiTest::studentJourney()
     ExerciseView *view = window.exerciseView();
     view->confirm = [](const QString &) { return true; }; // pas de boîte de dialogue
 
-    // Au premier lancement, l'exercice recommandé est sélectionné.
+    // Au premier lancement, la recommandation est de lire le cours.
+    QVERIFY(window.showingLesson());
+    LessonView *lessonView = window.lessonView();
+    QCOMPARE(lessonView->lessonId(), QStringLiteral("cpp.lesson.intro"));
+    QVERIFY(lessonView->findChild<QTextBrowser *>("lessonBody")->toPlainText().contains("Un exemple"));
+    screenshot(&window, "cours");
+    lessonView->findChild<QPushButton *>("markReadButton")->click();
+    QCOMPARE(lessonView->findChild<QPushButton *>("markReadButton")->text(), QStringLiteral("Lu ✓"));
+    lessonView->findChild<QPushButton *>("practiceButton")->click();
+    QVERIFY(!window.showingLesson());
     QCOMPARE(view->exerciseId(), QStringLiteral("cpp.basics.hello"));
+    QVERIFY(view->findChild<QPushButton *>("lessonButton")->text().contains("Revoir"));
     auto *checkButton = view->findChild<QPushButton *>("checkButton");
     QVERIFY(!checkButton->isEnabled()); // pas encore commencé
 
@@ -89,7 +101,7 @@ void GuiTest::studentJourney()
 
     // ... la solution de référence réussit.
     QVERIFY(QFile::remove(workdir + "/main.cpp"));
-    QVERIFY(QFile::copy(root_ + "/exercises/cpp/01-basics/hello/solution/main.cpp",
+    QVERIFY(QFile::copy(root_ + "/exercises/cpp/01-basics/01-hello/solution/main.cpp",
                         workdir + "/main.cpp"));
     QVERIFY(runCheck(view));
     for (int i = 0; i < tests->count(); i++)

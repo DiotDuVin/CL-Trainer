@@ -3,6 +3,8 @@
 
 #include <cstring>
 
+#include <QTextBrowser>
+
 #include "engine.h" // qs()
 #include "fs.h"     // libtrainer : path_join, fs_read_file
 #include "text.h"   // libtrainer : escape_visible
@@ -89,6 +91,24 @@ QString langName(const char *lang)
     if (std::strcmp(lang, "git") == 0)
         return QStringLiteral("Git");
     return qs(lang);
+}
+
+void setMarkdown(QTextBrowser *view, const QString &markdown)
+{
+    view->document()->setMarkdown(
+        markdown, QTextDocument::MarkdownFeatures(QTextDocument::MarkdownDialectGitHub |
+                                                  QTextDocument::MarkdownNoHTML));
+}
+
+QString lessonMarkdown(const lesson &l)
+{
+    QString md = qs(l.body);
+    // « example » ne sert qu'à la validation : inutile de l'afficher.
+    md.replace(QStringLiteral("```%1 example").arg(qs(l.lang)), QStringLiteral("```%1").arg(qs(l.lang)));
+    // Sans libellé, la sortie se confond avec le code qui la précède.
+    md.replace(QStringLiteral("\n```output\n"),
+               QStringLiteral("\n*Sortie du programme :*\n\n```text\n"));
+    return md;
 }
 
 QString statementMarkdown(const exercise &ex, int hintsShown)
