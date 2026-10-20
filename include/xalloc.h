@@ -12,6 +12,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void *xmalloc(size_t size);
 void *xcalloc(size_t count, size_t size);
 void *xrealloc(void *ptr, size_t size);
@@ -21,5 +25,9 @@ char *xstrndup(const char *s, size_t n); /* copie n octets + '\0' */
 /* Agrandit un tableau dynamique : garantit *cap >= needed (croissance x2).
  * Renvoie le nouveau pointeur. Usage : arr = grow_array(arr, &cap, n + 1, sizeof *arr); */
 void *grow_array(void *ptr, size_t *cap, size_t needed, size_t elem_size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

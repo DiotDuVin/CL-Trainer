@@ -13,6 +13,10 @@
 #include "strbuf.h"
 #include "strvec.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Itère sur les lignes d'un texte. À chaque appel, place dans *line / *len
  * la ligne suivante (sans '\n' ni '\r' final) et avance *cursor.
  * Renvoie 0 quand le texte est épuisé. */
@@ -39,5 +43,9 @@ void json_escape(strbuf *out, const char *s);
 /* Ajoute s avec les caractères invisibles rendus visibles (\t, \r, \xNN).
  * Sert à afficher une différence de sortie due à un espace ou un \r. */
 void escape_visible(strbuf *out, const char *s, size_t n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -16,6 +16,10 @@
 #include "strbuf.h"
 #include "testspec.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Résultat de build() */
 enum { BUILD_OK = 0, BUILD_FAILED = 1, BUILD_ERROR = -1 };
 
@@ -40,5 +44,9 @@ typedef struct runner {
 
 /* Runner du langage, ou NULL s'il n'est pas (encore) pris en charge. */
 const runner *runner_for(const char *lang);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

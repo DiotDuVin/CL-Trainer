@@ -5,7 +5,7 @@
  * Pourquoi pas popen()/system() ? Ils passent par le shell (problèmes de
  * guillemets et d'injection), ne capturent qu'un seul flux, n'ont pas de
  * timeout et ne savent pas tuer un programme qui boucle. On utilise donc
- * directement fork() + execvp() + pipe() + poll().
+ * directement fork() + execv() + pipe() + poll().
  */
 #ifndef TRAINER_PROCESS_H
 #define TRAINER_PROCESS_H
@@ -13,6 +13,10 @@
 #include <stddef.h>
 
 #include "strbuf.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     const char *cwd;          /* dossier de travail du fils, NULL = inchangé */
@@ -49,5 +53,9 @@ void proc_result_free(proc_result *res);
 /* Description pédagogique d'un signal, ex. SIGSEGV -> "erreur de
  * segmentation (accès mémoire invalide : pointeur nul, hors tableau...)". */
 const char *proc_signal_description(int sig);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -101,6 +101,12 @@ void test_process_suite(void)
     CHECK(proc_run(pwd, &o, &res, NULL) == 0);
     CHECK_STR(sb_cstr(&res.out), "/\n");
     proc_result_free(&res);
+    /* Chemin relatif : résolu depuis le dossier du FILS (cwd) */
+    const char *rel[] = { "./bin/sh", "-c", "echo relatif", NULL };
+    o.cwd = "/";
+    CHECK(proc_run(rel, &o, &res, NULL) == 0);
+    CHECK_STR(sb_cstr(&res.out), "relatif\n");
+    proc_result_free(&res);
     o.cwd = "/dossier/inexistant";
     CHECK(proc_run(pwd, &o, &res, &eno) != 0);
     proc_result_free(&res);

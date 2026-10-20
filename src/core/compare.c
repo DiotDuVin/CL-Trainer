@@ -1,10 +1,11 @@
 /* compare.c — voir compare.h. */
 #include "compare.h"
 
+#include <stdlib.h>
 #include <string.h>
 
-#include "term.h"
 #include "text.h"
+#include "xalloc.h"
 
 void compare_normalize(const char *s, strbuf *out)
 {
@@ -37,24 +38,10 @@ int compare_outputs(const char *expected, const char *actual, compare_mode mode)
     return equal;
 }
 
-static void print_line(FILE *f, const char *label, const char *line, size_t len, int present)
+void compare_first_diff(const char *expected, const char *actual, compare_mode mode,
+                        output_diff *d)
 {
-    fprintf(f, "      %s : ", label);
-    if (!present) {
-        fprintf(f, "%s(fin de la sortie)%s\n", term(T_DIM), term(T_RESET));
-        return;
-    }
-    strbuf vis = STRBUF_INIT;
-    escape_visible(&vis, line, len);
-    /* Les guillemets « » montrent où la ligne commence et finit : un
-     * espace en trop devient ainsi visible. */
-    fprintf(f, "«%s»\n", sb_cstr(&vis));
-    sb_free(&vis);
-}
-
-void compare_print_diff(FILE *f, const char *expected, const char *actual,
-                        compare_mode mode)
-{
+    memset(d, 0, sizeof *d);
     strbuf ne = STRBUF_INIT, na = STRBUF_INIT;
     if (mode == COMPARE_NORMALIZED) {
         compare_normalize(expected, &ne);
@@ -65,7 +52,7 @@ void compare_print_diff(FILE *f, const char *expected, const char *actual,
     }
 
     if (na.len == 0) {
-        fprintf(f, "    Le programme n'a rien affiché.\n");
+        d->empty_output = 1;
         goto out;
     }
 
@@ -76,21 +63,25 @@ void compare_print_diff(FILE *f, const char *expected, const char *actual,
         int has_e = text_next_line(&ce, &le, &ne_len);
         int has_a = text_next_line(&ca, &la, &na_len);
         if (!has_e && !has_a) {
-            /* Toutes les lignes sont identiques : seule la fin diffère
-             * (retour à la ligne final, \r...). Possible en mode exact. */
-            fprintf(f, "    Les lignes sont identiques mais les fins de ligne diffèrent "
-                       "(retour à la ligne final manquant ou en trop, \\r\\n ?).\n");
+            d->same_lines = 1;
             break;
         }
         if (has_e && has_a && ne_len == na_len && memcmp(le, la, ne_len) == 0)
             continue;
-        fprintf(f, "    Première différence à la ligne %d :\n", lineno);
-        print_line(f, "attendu", le, ne_len, has_e);
-        print_line(f, "obtenu ", la, na_len, has_a);
+        d->line = lineno;
+        d->expected_line = has_e ? xstrndup(le, ne_len) : NULL;
+        d->actual_line = has_a ? xstrndup(la, na_len) : NULL;
         break;
     }
 
 out:
     sb_free(&ne);
     sb_free(&na);
+}
+
+void output_diff_free(output_diff *d)
+{
+    free(d->expected_line);
+    free(d->actual_line);
+    memset(d, 0, sizeof *d);
 }

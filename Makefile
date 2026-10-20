@@ -13,7 +13,7 @@
 # Chaque variante (debug, asan, release) a son propre dossier build/<variante>
 # pour ne jamais mélanger des .o compilés avec des options différentes.
 
-VERSION  := 0.2.0
+VERSION  := 0.3.0
 PREFIX   ?= /usr/local
 DATADIR  ?= $(PREFIX)/share/trainer
 BUILD    ?= debug
@@ -45,14 +45,23 @@ endif
 ALL_CFLAGS  = $(CSTD) $(WARNINGS) $(OPTFLAGS) $(CFLAGS)
 ALL_LDFLAGS = $(SANLDFLAGS) $(LDFLAGS)
 
+# Organisation :
+#   src/core + src/util -> libtrainer.a  (le moteur, sans aucun affichage)
+#   src/cli             -> trainer       (l'interface terminal)
+#   tests/unit          -> unit_tests
+# L'application graphique (étape 4) se liera elle aussi à libtrainer.a.
 OUT      := build/$(BUILD)
-SRC      := $(wildcard src/*.c src/util/*.c src/runners/*.c)
-LIB_SRC  := $(filter-out src/main.c,$(SRC))
+LIB_SRC  := $(wildcard src/core/*.c src/core/runners/*.c src/util/*.c)
+CLI_SRC  := $(wildcard src/cli/*.c)
+CLI_LIB_SRC := $(filter-out src/cli/main.c,$(CLI_SRC))
 TEST_SRC := $(wildcard tests/unit/*.c)
-OBJ      := $(SRC:%.c=$(OUT)/%.o)
 LIB_OBJ  := $(LIB_SRC:%.c=$(OUT)/%.o)
+CLI_OBJ  := $(CLI_SRC:%.c=$(OUT)/%.o)
+CLI_LIB_OBJ := $(CLI_LIB_SRC:%.c=$(OUT)/%.o)
 TEST_OBJ := $(TEST_SRC:%.c=$(OUT)/%.o)
+ALL_OBJ  := $(LIB_OBJ) $(CLI_OBJ) $(TEST_OBJ)
 
+LIB      := $(OUT)/libtrainer.a
 BIN      := $(OUT)/trainer
 TEST_BIN := $(OUT)/unit_tests
 
@@ -60,7 +69,7 @@ VALGRIND := valgrind --quiet --leak-check=full --error-exitcode=99 \
             --errors-for-leak-kinds=definite,indirect,possible \
             --child-silent-after-fork=yes
 
-.PHONY: all test unit e2e asan valgrind release install uninstall clean
+.PHONY: all lib test unit e2e cxx-headers asan valgrind release install uninstall clean
 
 all: trainer
 
@@ -68,18 +77,38 @@ all: trainer
 trainer: $(BIN)
 	cp $(BIN) $@
 
-$(BIN): $(OBJ)
+lib: $(LIB)
+
+# Bibliothèque statique : une simple archive de fichiers .o (ar = archiver).
+# L'éditeur de liens n'en extrait que les .o réellement utilisés.
+$(LIB): $(LIB_OBJ)
+	@rm -f $@
+	$(AR) rcs $@ $^
+
+# La bibliothèque vient APRÈS les .o : l'éditeur de liens ne cherche dans
+# une archive que les symboles encore non résolus à ce moment-là.
+$(BIN): $(CLI_OBJ) $(LIB)
 	$(CC) $(ALL_LDFLAGS) -o $@ $^
 
-$(TEST_BIN): $(LIB_OBJ) $(TEST_OBJ)
+$(TEST_BIN): $(TEST_OBJ) $(CLI_LIB_OBJ) $(LIB)
 	$(CC) $(ALL_LDFLAGS) -o $@ $^
+
+# Les en-têtes de src/cli ne sont visibles que de la CLI et des tests : le
+# moteur ne peut pas en dépendre par erreur (il ne compilerait plus).
+$(OUT)/src/cli/%.o $(OUT)/tests/%.o: EXTRA_INC := -Isrc/cli
 
 # Règle générique : build/<variante>/src/x.o <- src/x.c
 $(OUT)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(ALL_CFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(EXTRA_INC) $(ALL_CFLAGS) -c -o $@ $<
 
-test: unit e2e
+test: unit e2e cxx-headers
+
+# Vérifie que les en-têtes publics se compilent en C++20 (pour l'application
+# Qt) : extern "C", pas de mot-clé C++ comme nom (requires, class, new...).
+cxx-headers:
+	@command -v $(CXX) >/dev/null || { echo "$(CXX) absent : test ignoré"; exit 0; }
+	$(CXX) -std=c++20 -Wall -Wextra -Werror -fsyntax-only -Iinclude tests/cxx/headers.cpp
 
 unit: $(TEST_BIN)
 	./$(TEST_BIN)
@@ -110,4 +139,4 @@ uninstall:
 clean:
 	rm -rf build trainer
 
--include $(OBJ:.o=.d) $(TEST_OBJ:.o=.d)
+-include $(ALL_OBJ:.o=.d)

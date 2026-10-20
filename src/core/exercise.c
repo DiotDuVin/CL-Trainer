@@ -177,7 +177,7 @@ static int parse_key(exercise *ex, int key, const char *v, size_t vn)
         split_list(v, vn, ',', &ex->tags);
         break;
     case K_REQUIRES:
-        split_list(v, vn, ',', &ex->requires);
+        split_list(v, vn, ',', &ex->prereqs);
         break;
     case K_FILES:
         split_list(v, vn, ',', &ex->files);
@@ -377,7 +377,7 @@ void exercise_free(exercise *ex)
     free(ex->common_mistakes);
     free(ex->dir);
     sv_free(&ex->tags);
-    sv_free(&ex->requires);
+    sv_free(&ex->prereqs);
     sv_free(&ex->files);
     sv_free(&ex->hints);
     memset(ex, 0, sizeof *ex);

@@ -187,6 +187,61 @@ int fs_copy_tree(const char *src, const char *dst, int overwrite)
     return rc;
 }
 
+int fs_remove_tree(const char *path)
+{
+    struct stat st;
+    /* lstat et pas stat : sur un lien symbolique, lstat décrit le lien
+     * lui-même. Suivre un lien vers /home serait catastrophique ici. */
+    if (lstat(path, &st) != 0) {
+        if (errno == ENOENT)
+            return 0;
+        err_set_errno("stat %s", path);
+        return -1;
+    }
+    if (!S_ISDIR(st.st_mode)) {
+        if (unlink(path) != 0) {
+            err_set_errno("impossible de supprimer %s", path);
+            return -1;
+        }
+        return 0;
+    }
+    DIR *dir = opendir(path);
+    if (!dir) {
+        err_set_errno("impossible d'ouvrir le dossier %s", path);
+        return -1;
+    }
+    strbuf child = STRBUF_INIT;
+    int rc = 0;
+    struct dirent *ent;
+    while (rc == 0 && (ent = readdir(dir)) != NULL) {
+        if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
+            continue;
+        path_join(&child, path, ent->d_name);
+        rc = fs_remove_tree(child.data);
+    }
+    closedir(dir);
+    sb_free(&child);
+    if (rc == 0 && rmdir(path) != 0) {
+        err_set_errno("impossible de supprimer %s", path);
+        rc = -1;
+    }
+    return rc;
+}
+
+int fs_make_temp_dir(const char *prefix, strbuf *out)
+{
+    const char *tmp = getenv("TMPDIR");
+    sb_clear(out);
+    sb_appendf(out, "%s/%s-XXXXXX", (tmp && *tmp) ? tmp : "/tmp", prefix);
+    /* mkdtemp remplace les X par des caractères aléatoires et crée le
+     * dossier de façon atomique (pas de course avec un autre programme). */
+    if (!mkdtemp(out->data)) {
+        err_set_errno("impossible de créer un dossier temporaire %s", out->data);
+        return -1;
+    }
+    return 0;
+}
+
 void path_join(strbuf *out, const char *a, const char *b)
 {
     sb_clear(out);

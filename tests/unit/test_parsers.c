@@ -1,5 +1,6 @@
 /* test_parsers.c — tests des parsers exercise.txt / tests.txt et de compare. */
 #include "compare.h"
+#include "json.h"
 #include "error.h"
 #include "exercise.h"
 #include "test.h"
@@ -50,8 +51,8 @@ void test_exercise_suite(void)
     CHECK_STR(ex.id, "cpp.basics.hello");
     CHECK_INT(ex.level, 1);
     CHECK_INT(ex.timeout_ms, 500);
-    CHECK_INT(ex.requires.len, 2);
-    CHECK_STR(ex.requires.items[1], "cpp.b");
+    CHECK_INT(ex.prereqs.len, 2);
+    CHECK_STR(ex.prereqs.items[1], "cpp.b");
     CHECK_STR(ex.statement, "Écris un programme.\n### sous-titre (reste du texte)");
     CHECK_INT(ex.hints.len, 2);
     CHECK_STR(ex.hints.items[1], "Second\nindice.");
@@ -147,4 +148,42 @@ void test_compare_suite(void)
     CHECK(compare_outputs("7 3\n", "7 3\n", COMPARE_EXACT));
     CHECK(compare_outputs("", "", COMPARE_NORMALIZED));
     CHECK(!compare_outputs("x\n", "", COMPARE_NORMALIZED));
+}
+
+void test_json_suite(void)
+{
+    strbuf out = STRBUF_INIT;
+    json_writer w;
+    json_init(&w, &out);
+    json_begin_object(&w);
+    json_key(&w, "id");    json_string(&w, "a\"b");
+    json_key(&w, "n");     json_int(&w, -3);
+    json_key(&w, "liste");
+    json_begin_array(&w);
+    json_bool(&w, 1);
+    json_string(&w, NULL);
+    json_begin_object(&w);
+    json_end(&w);
+    json_end(&w);
+    json_end(&w);
+    CHECK_STR(sb_cstr(&out), "{\"id\":\"a\\\"b\",\"n\":-3,\"liste\":[true,null,{}]}");
+    sb_free(&out);
+
+    /* Première différence entre deux sorties */
+    output_diff d;
+    compare_first_diff("a\nb\nc\n", "a\nB\n", COMPARE_NORMALIZED, &d);
+    CHECK_INT(d.line, 2);
+    CHECK_STR(d.expected_line, "b");
+    CHECK_STR(d.actual_line, "B");
+    output_diff_free(&d);
+    compare_first_diff("a\nb\n", "a\n", COMPARE_NORMALIZED, &d);
+    CHECK_INT(d.line, 2);
+    CHECK(d.actual_line == NULL); /* la sortie s'arrête avant */
+    output_diff_free(&d);
+    compare_first_diff("a\n", "", COMPARE_NORMALIZED, &d);
+    CHECK(d.empty_output);
+    output_diff_free(&d);
+    compare_first_diff("a\n", "a", COMPARE_EXACT, &d);
+    CHECK(d.same_lines);
+    output_diff_free(&d);
 }

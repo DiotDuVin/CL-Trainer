@@ -1,5 +1,6 @@
 -std=c11
 -Iinclude
+-Isrc/cli
 -D_XOPEN_SOURCE=700
 -Wall
 -Wextra

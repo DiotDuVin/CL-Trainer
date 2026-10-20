@@ -58,6 +58,40 @@ static int scan(catalog *cat, const char *dir, int depth)
     return 0;
 }
 
+/* Détection de cycle dans le graphe des prérequis : parcours en profondeur
+ * avec trois couleurs (algorithme classique). BLANC = pas encore vu,
+ * GRIS = en cours d'exploration (sur la pile), NOIR = terminé. Atteindre un
+ * sommet GRIS signifie qu'on est revenu sur ses pas : il y a un cycle. */
+enum { WHITE, GRAY, BLACK };
+
+static int find_cycle(const catalog *cat, size_t i, unsigned char *color, size_t *stack,
+                      size_t depth, strbuf *msg)
+{
+    color[i] = GRAY;
+    stack[depth] = i;
+    const strvec *req = &cat->items[i].prereqs;
+    for (size_t k = 0; k < req->len; k++) {
+        const exercise *dep = catalog_find(cat, req->items[k]);
+        if (!dep)
+            continue;
+        size_t j = (size_t)(dep - cat->items);
+        if (color[j] == GRAY) { /* cycle : on l'écrit depuis j */
+            sb_append(msg, "cycle de prérequis : ");
+            size_t from = depth;
+            while (stack[from] != j)
+                from--;
+            for (size_t d = from; d <= depth; d++)
+                sb_appendf(msg, "%s -> ", cat->items[stack[d]].id);
+            sb_append(msg, cat->items[j].id);
+            return 1;
+        }
+        if (color[j] == WHITE && find_cycle(cat, j, color, stack, depth + 1, msg))
+            return 1;
+    }
+    color[i] = BLACK;
+    return 0;
+}
+
 static int compare_by_dir(const void *a, const void *b)
 {
     const exercise *ea = a, *eb = b;
@@ -102,7 +136,7 @@ int catalog_load(const char *root, catalog *cat)
 
     /* Prérequis inconnus : signalés, mais l'exercice reste utilisable. */
     for (size_t i = 0; i < cat->len; i++) {
-        const strvec *req = &cat->items[i].requires;
+        const strvec *req = &cat->items[i].prereqs;
         for (size_t k = 0; k < req->len; k++) {
             if (!catalog_find(cat, req->items[k])) {
                 sb_clear(&msg);
@@ -111,6 +145,21 @@ int catalog_load(const char *root, catalog *cat)
                 add_error(cat, msg.data);
             }
         }
+    }
+
+    /* Cycles : un seul est signalé, cela suffit pour corriger. */
+    if (cat->len > 0) {
+        unsigned char *color = xcalloc(cat->len, 1);
+        size_t *stack = xcalloc(cat->len, sizeof *stack);
+        for (size_t i = 0; i < cat->len; i++) {
+            sb_clear(&msg);
+            if (color[i] == WHITE && find_cycle(cat, i, color, stack, 0, &msg)) {
+                add_error(cat, msg.data);
+                break;
+            }
+        }
+        free(color);
+        free(stack);
     }
     sb_free(&msg);
     return 0;

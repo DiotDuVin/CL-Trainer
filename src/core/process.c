@@ -5,10 +5,11 @@
  *   père (trainer)                      fils
  *   ───────────────                     ────
  *   pipe() x4
+ *   cherche argv[0] dans le PATH
  *   fork() ───────────────────────────► setpgid(0,0)  (son propre groupe)
  *                                       dup2 -> stdin/stdout/stderr
  *                                       chdir, setrlimit
- *   read(tube_exec) ... bloque          execvp(...)
+ *   read(tube_exec) ... bloque          execv(...)
  *     EOF        => exec réussi         (le tube_exec est CLOEXEC : exec le ferme)
  *     un entier  => errno de l'échec    (sinon le fils écrit errno dans le tube)
  *   boucle poll() : écrit stdin, lit stdout/stderr, surveille le délai
@@ -25,12 +26,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "error.h"
+#include "fs.h"
 
 /* Horloge monotone : contrairement à l'heure système, elle ne recule jamais
  * (changement d'heure, synchronisation NTP...). C'est la bonne horloge pour
@@ -103,6 +106,41 @@ static int drain(int *fd, strbuf *sb, size_t max)
     return 0;
 }
 
+/* Cherche cmd dans les dossiers du PATH, comme le ferait le shell.
+ * Une commande contenant '/' est un chemin : s'il est relatif, il l'est par
+ * rapport au dossier de travail du FILS (cwd), pas au nôtre. 0 / -1. */
+static int resolve_executable(const char *cmd, const char *cwd, strbuf *out)
+{
+    if (strchr(cmd, '/')) {
+        if (cmd[0] != '/' && cwd)
+            path_join(out, cwd, cmd);
+        else
+            sb_append(out, cmd);
+        return access(out->data, X_OK) == 0 ? 0 : -1;
+    }
+    const char *path = getenv("PATH");
+    if (!path || !*path)
+        path = "/usr/local/bin:/usr/bin:/bin";
+    for (const char *p = path; ; ) {
+        const char *colon = strchr(p, ':');
+        size_t n = colon ? (size_t)(colon - p) : strlen(p);
+        sb_clear(out);
+        if (n == 0)
+            sb_append(out, "."); /* entrée vide = dossier courant */
+        else
+            sb_append_n(out, p, n);
+        sb_append_char(out, '/');
+        sb_append(out, cmd);
+        struct stat st;
+        if (access(out->data, X_OK) == 0 && stat(out->data, &st) == 0 && S_ISREG(st.st_mode))
+            return 0;
+        if (!colon)
+            break;
+        p = colon + 1;
+    }
+    return -1;
+}
+
 static void kill_group(pid_t pid)
 {
     /* pid négatif = tout le groupe de processus. Le fils a créé son propre
@@ -123,13 +161,23 @@ int proc_run(const char *const argv[], const proc_opts *opts, proc_result *res,
     int rc = -1;
 
     /* Si le programme se termine sans lire tout stdin, écrire dans le tube
-     * enverrait SIGPIPE au père, qui serait tué. On ignore donc SIGPIPE le
-     * temps de l'exécution (write renverra EPIPE à la place). */
-    struct sigaction ign, old_pipe;
-    memset(&ign, 0, sizeof ign);
-    ign.sa_handler = SIG_IGN;
-    sigemptyset(&ign.sa_mask);
-    sigaction(SIGPIPE, &ign, &old_pipe);
+     * enverrait SIGPIPE au père, qui serait tué. On ignore donc SIGPIPE
+     * (write renverra EPIPE à la place). C'est un réglage de tout le
+     * processus : on ne le restaure pas, car deux threads lançant des
+     * programmes en même temps se marcheraient dessus. */
+    signal(SIGPIPE, SIG_IGN);
+
+    /* Recherche dans le PATH faite ICI, dans le père. Après un fork() dans
+     * un programme multithreadé (l'application graphique), le fils ne peut
+     * appeler que des fonctions « async-signal-safe » : execv l'est, mais
+     * pas execvp, qui parcourt le PATH et peut allouer de la mémoire. */
+    strbuf exe = STRBUF_INIT;
+    if (resolve_executable(argv[0], opts->cwd, &exe) != 0) {
+        if (exec_errno)
+            *exec_errno = ENOENT;
+        err_set("impossible de lancer « %s » : commande introuvable", argv[0]);
+        goto done;
+    }
 
     if (pipe(p_in) != 0 || pipe(p_out) != 0 || pipe(p_err) != 0 || pipe(p_exec) != 0) {
         err_set_errno("création des tubes");
@@ -164,9 +212,9 @@ int proc_run(const char *const argv[], const proc_opts *opts, proc_result *res,
             rl.rlim_cur = rl.rlim_max = (rlim_t)opts->mem_limit_mb * 1024 * 1024;
             setrlimit(RLIMIT_AS, &rl);
         }
-        /* Le prototype historique d'execvp prend char *const[] : le cast est
-         * sans danger, execvp ne modifie pas les chaînes. */
-        execvp(argv[0], (char *const *)argv);
+        /* Le prototype historique d'execv prend char *const[] : le cast est
+         * sans danger, execv ne modifie pas les chaînes. */
+        execv(exe.data, (char *const *)argv);
         child_fail(p_exec[1], errno);
     }
 
@@ -309,7 +357,7 @@ done:
     close_fd(&p_err[1]);
     close_fd(&p_exec[0]);
     close_fd(&p_exec[1]);
-    sigaction(SIGPIPE, &old_pipe, NULL);
+    sb_free(&exe);
     return rc;
 }
 

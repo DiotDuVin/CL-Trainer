@@ -1,0 +1,10 @@
+id: cpp.broken.a
+title: A
+lang: cpp
+level: 1
+topic: t
+requires: cpp.broken.b
+## statement
+x
+## explanation
+y
