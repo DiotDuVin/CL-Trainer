@@ -9,8 +9,9 @@ outils (`g++`, `git`, `dotnet`, `cargo`), puis compare la sortie aux tests.
 
 > État : **étape 5a**. Des **cours** (pensés pour qui connaît le C) suivis d'exercices
 > corrigés automatiquement, en ligne de commande ou dans une application graphique.
-> Contenu actuel : 6 chapitres C++ (premier programme, références, fonctions, vector/array,
-> classes, RAII), 17 exercices. À venir : 8 autres chapitres C++, puis Git, C# et Rust.
+> Contenu actuel : 9 chapitres C++ (premier programme, références, fonctions, vector/array,
+> classes, RAII, pointeurs intelligents, déplacement, map/set), 24 exercices.
+> À venir : 5 autres chapitres C++, puis Git, C# et Rust.
 
 ![Application graphique : résultats des tests](docs/images/gui-echec.png)
 

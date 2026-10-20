@@ -1,0 +1,36 @@
+=== test: exemple
+--- stdin
+2026-10-02 ada
+2026-10-01 linus
+2026-10-02 ada
+2026-10-02 linus
+--- stdout
+2026-10-01 : 1
+2026-10-02 : 2
+total : 2
+
+=== test: un seul jour
+--- stdin
+2026-01-15 a
+2026-01-15 b
+2026-01-15 c
+2026-01-15 a
+--- stdout
+2026-01-15 : 3
+total : 3
+
+=== test: changement d'année [hidden]
+--- stdin
+2027-01-01 x
+2026-12-31 y
+2026-12-31 x
+2026-02-28 z
+--- stdout
+2026-02-28 : 1
+2026-12-31 : 2
+2027-01-01 : 1
+total : 3
+
+=== test: journal vide [hidden]
+--- stdout
+total : 0

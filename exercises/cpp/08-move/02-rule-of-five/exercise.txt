@@ -1,0 +1,85 @@
+id: cpp.move.rule-of-five
+title: La règle de cinq
+lang: cpp
+level: 3
+topic: move
+tags: rule-of-five, move, noexcept, raii
+requires: cpp.move.tracked
+files: main.cpp
+sanitize: yes
+estimated_min: 30
+
+## statement
+Voici le `Buffer` du chapitre 6, avec la règle de trois. Il compte ses
+allocations (`Buffer::allocations`). Il lui manque le **déplacement** : chaque
+`std::move` retombe sur la copie, et alloue donc un nouveau tableau.
+
+Ajoute le **constructeur de déplacement** et l'**affectation par déplacement**
+(les deux `noexcept`), pour qu'un déplacement :
+
+- **vole** le tableau de la source, sans aucune allocation ;
+- laisse la source **vide** (taille 0, pointeur nul) ;
+- pour l'affectation, libère d'abord le tableau que l'objet possédait.
+
+Le `main` fourni lit `n` puis `n` entiers, déplace les buffers de main en main,
+et affiche les tailles et le nombre total d'allocations. Avec le déplacement,
+il doit n'y en avoir que 3. L'exercice est compilé avec AddressSanitizer :
+aucune fuite ni double libération n'est tolérée.
+
+## hints
+Constructeur de déplacement :
+`Buffer(Buffer &&other) noexcept : size_(other.size_), data_(other.data_)`,
+puis `other.size_ = 0; other.data_ = nullptr;`.
+---
+Affectation : `if (this != &other) { delete[] data_; ... voler ... vider other ... }`
+puis `return *this;`. Sans le `delete[]`, l'ancien tableau fuit. Sans le test
+`this != &other`, `b = std::move(b)` libérerait le tableau qu'on s'apprête à garder.
+---
+`delete[] nullptr` ne fait rien : le destructeur d'un buffer vidé est donc sans
+danger.
+
+## explanation
+Solution de référence :
+
+    Buffer(Buffer &&other) noexcept : size_(other.size_), data_(other.data_) {
+        other.size_ = 0;
+        other.data_ = nullptr;
+    }
+
+    Buffer &operator=(Buffer &&other) noexcept {
+        if (this != &other) {
+            delete[] data_;          // ce que l'on possédait
+            size_ = other.size_;     // on vole
+            data_ = other.data_;
+            other.size_ = 0;         // la source est vide
+            other.data_ = nullptr;
+        }
+        return *this;
+    }
+
+Ce que montre le compteur :
+
+- **Sans déplacement**, `Buffer b = std::move(a);` appelait le constructeur de
+  **copie** : un `std::move` ne fait que *permettre* le déplacement, et faute
+  de constructeur de déplacement, le compilateur se rabat sur la copie, en
+  silence.
+- **Avec le déplacement**, seuls les trois `Buffer(n)` du `main` allouent.
+  Toutes les autres opérations transfèrent un pointeur.
+- **`push_back(Buffer(2))`** passe un temporaire : c'est une rvalue, donc il est
+  déplacé dans le vecteur sans `std::move` explicite.
+- **`noexcept`** : sans lui, `std::vector<Buffer>` copierait ses éléments en
+  s'agrandissant (ici `reserve` l'évite, mais c'est la règle à suivre).
+- **La règle de cinq** : destructeur, deux copies, deux déplacements. Encore
+  une fois, la vraie bonne pratique reste la règle de zéro : avec un membre
+  `std::vector<int>`, tout ceci serait automatique.
+
+## common_mistakes
+- Oublier de vider la source : les deux objets possèdent le même tableau,
+  d'où une double libération (AddressSanitizer la signale).
+- Oublier `delete[] data_` dans l'affectation : fuite de l'ancien tableau
+  (LeakSanitizer la signale en fin de programme).
+- Garder l'affectation par copie en version « par valeur »
+  (`operator=(Buffer other)`) ET ajouter `operator=(Buffer &&)` : l'appel
+  `c = std::move(b)` devient ambigu. Le code fourni utilise la version
+  `const Buffer &`, compatible avec l'ajout du déplacement.
+- Oublier `noexcept`.

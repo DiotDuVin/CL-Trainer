@@ -1,0 +1,43 @@
+=== test: exemple
+--- stdin
+ajout ada 0123
+cherche ada
+cherche bob
+taille
+--- stdout
+ajouté
+0123
+inconnu
+1
+
+=== test: mise à jour et suppression
+--- stdin
+ajout ada 0123
+ajout ada 0456
+cherche ada
+suppr ada
+suppr ada
+taille
+--- stdout
+ajouté
+mis à jour
+0456
+supprimé
+inconnu
+0
+
+=== test: chercher n'ajoute rien [hidden]
+--- stdin
+cherche x
+cherche y
+cherche x
+taille
+ajout z 1
+taille
+--- stdout
+inconnu
+inconnu
+inconnu
+0
+ajouté
+1

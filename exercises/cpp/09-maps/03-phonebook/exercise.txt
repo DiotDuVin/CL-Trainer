@@ -1,0 +1,72 @@
+id: cpp.maps.phonebook
+title: Un annuaire avec unordered_map
+lang: cpp
+level: 2
+topic: maps
+tags: unordered_map, find, erase
+requires: cpp.maps.word-count
+files: main.cpp
+estimated_min: 20
+
+## statement
+Écris un annuaire (nom -> numéro) dans un `std::unordered_map`. Chaque ligne
+de l'entrée est une commande :
+
+- `ajout NOM NUMERO` : affiche `ajouté`, ou `mis à jour` si le nom existait ;
+- `cherche NOM` : affiche le numéro, ou `inconnu` ;
+- `suppr NOM` : affiche `supprimé`, ou `inconnu` ;
+- `taille` : affiche le nombre de contacts.
+
+    entrée : ajout ada 0123        sortie : ajouté
+             cherche ada                     0123
+             cherche bob                     inconnu
+             taille                          1
+
+Attention : chercher un nom ne doit **jamais** l'ajouter à l'annuaire.
+
+## hints
+Pour `cherche`, n'utilise PAS `book[nom]` : il insérerait le nom avec un numéro
+vide. Utilise `auto it = book.find(nom);` puis compare à `book.end()`.
+---
+`book.erase(nom)` renvoie le nombre d'éléments supprimés (0 ou 1) : pratique
+pour savoir si le nom existait.
+---
+Pour `ajout`, `book.count(nom)` (avant l'affectation) dit s'il s'agit d'une
+mise à jour.
+
+## explanation
+Solution de référence :
+
+    if (cmd == "ajout") {
+        std::cin >> name >> number;
+        const bool existed = book.count(name) != 0;
+        book[name] = number;
+        std::cout << (existed ? "mis à jour" : "ajouté") << '\n';
+    } else if (cmd == "cherche") {
+        std::cin >> name;
+        auto it = book.find(name);
+        std::cout << (it == book.end() ? "inconnu" : it->second) << '\n';
+    } else if (cmd == "suppr") {
+        std::cin >> name;
+        std::cout << (book.erase(name) ? "supprimé" : "inconnu") << '\n';
+    } else if (cmd == "taille") {
+        std::cout << book.size() << '\n';
+    }
+
+Points importants :
+
+- **`find` pour chercher, `[]` pour écrire.** `book[name]` dans `cherche`
+  ajouterait un contact au numéro vide : la commande `taille` suivante le
+  révèle (c'est ce que vérifie un test caché).
+- **`unordered_map`** convient : on ne parcourt jamais l'annuaire dans un
+  ordre donné, et chaque opération est en temps constant en moyenne.
+- **`erase(cle)` renvoie un nombre** (0 ou 1 pour des clés uniques), ce qui
+  évite une recherche préalable.
+- **Le numéro est une `std::string`**, et non un entier : « 0123 » perdrait son
+  zéro initial. Un « numéro » qui ne sert pas à calculer est un texte.
+
+## common_mistakes
+- `book[name]` dans `cherche` : insère le nom (la taille augmente).
+- Stocker le numéro dans un `int` : les zéros initiaux disparaissent.
+- Chercher avant de supprimer (`find` puis `erase(it)`) : correct, mais une
+  recherche de trop.

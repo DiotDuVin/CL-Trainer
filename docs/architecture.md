@@ -27,7 +27,7 @@ Feuille de route :
 
    Plan C++ : 1 Premier programme ✅, 2 Références et const ✅, 3 Fonctions modernes ✅,
    4 vector/array ✅, 5 Classes ✅, 6 RAII et destructeurs ✅, 7 new/delete et pointeurs
-   intelligents, 8 Sémantique de déplacement, 9 Conteneurs associatifs,
+   intelligents ✅, 8 Sémantique de déplacement ✅, 9 Conteneurs associatifs ✅,
    10 Algorithmes et lambdas, 11 Templates, 12 Exceptions, 13 Héritage et
    polymorphisme, 14 Organiser un projet (en-têtes, CMake).
 6. Git, puis C#, puis Rust

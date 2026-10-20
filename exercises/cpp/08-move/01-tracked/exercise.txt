@@ -1,0 +1,93 @@
+id: cpp.move.tracked
+title: Copie ou déplacement ? Compter pour comprendre
+lang: cpp
+level: 3
+topic: move
+tags: move, copy, rvalue, noexcept
+requires: cpp.smart.shared-owners
+files: main.cpp
+estimated_min: 25
+
+## statement
+La classe `Tracked` contient un texte. Écris ses quatre opérations de copie
+et de déplacement pour qu'elles **comptent** combien de fois elles sont
+appelées, dans deux compteurs partagés par toute la classe :
+
+- constructeur de copie et affectation par copie : incrémentent `copies` ;
+- constructeur de déplacement et affectation par déplacement : incrémentent
+  `moves`, et **vident la source** (son texte devient la chaîne vide).
+
+Le `main` fourni (à ne pas modifier) lit des mots, fait une série de copies,
+de déplacements et d'insertions dans un vecteur, puis affiche le texte de
+chaque objet et les deux compteurs. À toi de prévoir, avant d'exécuter, ce que
+chaque ligne de `main` appelle.
+
+    entrée : un deux trois
+    sortie : a=(vide) b=un c=(vide) e=un
+             v=un un deux trois
+             copies=3 déplacements=3
+
+## hints
+Les signatures : `Tracked(const Tracked &other)`,
+`Tracked(Tracked &&other) noexcept`, `Tracked &operator=(const Tracked &other)`,
+`Tracked &operator=(Tracked &&other) noexcept`.
+---
+Dans le déplacement, vole le texte avec `value_(std::move(other.value_))`,
+puis garantis que la source est vide avec `other.value_.clear();`. La norme ne
+promet pas qu'une `std::string` déplacée est vide : c'est TA classe qui
+définit ce contrat.
+---
+Les compteurs : `static inline int copies = 0;` et `static inline int moves = 0;`
+(déjà déclarés dans le code fourni).
+
+## explanation
+Solution de référence :
+
+    Tracked(const Tracked &other) : value_(other.value_) { ++copies; }
+    Tracked(Tracked &&other) noexcept : value_(std::move(other.value_)) {
+        other.value_.clear();
+        ++moves;
+    }
+    Tracked &operator=(const Tracked &other) {
+        value_ = other.value_;
+        ++copies;
+        return *this;
+    }
+    Tracked &operator=(Tracked &&other) noexcept {
+        value_ = std::move(other.value_);
+        other.value_.clear();
+        ++moves;
+        return *this;
+    }
+
+Ligne par ligne dans `main` :
+
+| Instruction | Appel |
+|---|---|
+| `Tracked b = a;` | copie (a est une lvalue) |
+| `Tracked c = std::move(a);` | déplacement |
+| `v.push_back(b);` | copie dans le vecteur |
+| `v.push_back(std::move(c));` | déplacement dans le vecteur |
+| `v.emplace_back(word);` | **ni l'un ni l'autre** : construit dans le vecteur |
+| `d = v[0];` | affectation par copie |
+| `e = std::move(d);` | affectation par déplacement |
+
+- **`emplace_back`** construit l'élément directement à sa place avec les
+  arguments du constructeur : ni copie ni déplacement.
+- **`v.reserve(...)` est indispensable** au comptage : sans lui, chaque
+  agrandissement déplacerait (grâce à `noexcept`) les éléments déjà présents,
+  et les compteurs dépendraient de la stratégie d'agrandissement.
+- **Sans `noexcept`**, ces agrandissements copieraient au lieu de déplacer
+  (voir le cours).
+- **L'auto-affectation par déplacement** (`x = std::move(x)`) viderait ici le
+  texte. La bibliothèque standard tolère ce cas sans plus de garantie. Pour un
+  type robuste, on ajoute `if (this != &other)`.
+
+## common_mistakes
+- Oublier `noexcept` : le programme marche ici (grâce à `reserve`), mais un
+  `std::vector<Tracked>` copierait ses éléments à chaque agrandissement.
+- Ne pas vider la source : `a` et `c` affichent encore leur texte. C'est
+  autorisé pour une `std::string`, mais contraire au contrat de cette classe.
+- Écrire `value_(other.value_)` dans le constructeur de déplacement : c'est
+  une copie déguisée (`other.value_` est une lvalue, il faut `std::move`).
+- Croire que `emplace_back` et `push_back` sont équivalents.

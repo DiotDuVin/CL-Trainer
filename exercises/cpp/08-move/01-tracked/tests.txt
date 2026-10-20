@@ -1,0 +1,23 @@
+=== test: exemple
+--- stdin
+un deux trois
+--- stdout
+a=(vide) b=un c=(vide) e=un
+v=un un deux trois
+copies=3 déplacements=3
+
+=== test: deux mots
+--- stdin
+alpha beta
+--- stdout
+a=(vide) b=alpha c=(vide) e=alpha
+v=alpha alpha beta
+copies=3 déplacements=3
+
+=== test: plus de mots [hidden]
+--- stdin
+x y z w
+--- stdout
+a=(vide) b=x c=(vide) e=x
+v=x x y z w
+copies=3 déplacements=3

@@ -1,0 +1,78 @@
+id: cpp.maps.word-count
+title: Fréquence des mots
+lang: cpp
+level: 2
+topic: maps
+tags: map, string, counting
+requires: cpp.containers.above-average
+files: main.cpp
+estimated_min: 15
+
+## statement
+Lis tous les mots de l'entrée. Pour chaque mot, ne garde que ses lettres, mises
+en **minuscules** (« Le » et « le, » sont le même mot « le »). Les mots sans
+aucune lettre sont ignorés.
+
+Affiche chaque mot distinct et son nombre d'occurrences, **par ordre
+alphabétique**, au format `mot : n`. S'il n'y a aucun mot, affiche `aucun mot`.
+
+    entrée : Le chat, le chien. LE rat !
+    sortie : chat : 1
+             chien : 1
+             le : 3
+             rat : 1
+
+Les mots ne contiennent pas de lettres accentuées.
+
+## hints
+Un `std::map<std::string, int>` trie ses clés : le parcours donne directement
+l'ordre alphabétique.
+---
+`++counts[mot];` crée l'entrée à 0 si elle n'existe pas, puis l'incrémente.
+C'est le bon usage de `operator[]`.
+---
+Pour nettoyer un mot : parcours ses caractères, garde ceux pour lesquels
+`std::isalpha(static_cast<unsigned char>(c))` est vrai, et ajoute
+`static_cast<char>(std::tolower(static_cast<unsigned char>(c)))`.
+
+## explanation
+Solution de référence :
+
+    std::string clean(const std::string &word) {
+        std::string result;
+        for (char c : word) {
+            unsigned char u = static_cast<unsigned char>(c);
+            if (std::isalpha(u))
+                result += static_cast<char>(std::tolower(u));
+        }
+        return result;
+    }
+
+    std::map<std::string, int> counts;
+    std::string word;
+    while (std::cin >> word) {
+        const std::string w = clean(word);
+        if (!w.empty())
+            ++counts[w];
+    }
+    if (counts.empty())
+        std::cout << "aucun mot\n";
+    for (const auto &[w, n] : counts)
+        std::cout << w << " : " << n << '\n';
+
+Points importants :
+
+- `std::map` fait tout le travail : recherche, insertion, tri. En C, il aurait
+  fallu écrire un arbre de recherche ou trier un tableau à la fin.
+- `++counts[w]` : `operator[]` insère la valeur par défaut d'un `int` (0) quand
+  la clé est absente. Pour un comptage, c'est exactement ce qu'on veut.
+- `const auto &[w, n]` : chaque élément est une `std::pair<const std::string, int>` ;
+  le déballage nomme ses deux parties, sans copie.
+- Avec `std::unordered_map`, le comptage serait un peu plus rapide, mais il
+  faudrait trier les mots avant de les afficher.
+
+## common_mistakes
+- Oublier de passer en minuscules : « Le » et « le » comptés séparément.
+- Utiliser `std::unordered_map` et afficher dans l'ordre du parcours : l'ordre
+  n'est pas alphabétique (et peut varier d'une machine à l'autre).
+- Compter les mots vides (« ! », « 42 ») après nettoyage.
