@@ -35,7 +35,9 @@ private:
     Engine &engine_;
     QString id_;
     QLabel *title_;
-    QLabel *meta_;
+    QLabel *langChip_;
+    QLabel *timeChip_;
+    QLabel *readChip_;
     QTextBrowser *body_;
     QPushButton *readButton_;
     QPushButton *practiceButton_;

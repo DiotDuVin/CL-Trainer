@@ -3,9 +3,14 @@
 
 #include <cstring>
 
+#include <QSet>
+#include <QTextBlock>
+#include <QTextTable>
 #include <QTextBrowser>
+#include <QTextCursor>
 
 #include "engine.h" // qs()
+#include "theme.h"
 #include "fs.h"     // libtrainer : path_join, fs_read_file
 #include "text.h"   // libtrainer : escape_visible
 
@@ -27,8 +32,40 @@ QString pre(const QString &content)
     }
     if (lines.isEmpty())
         return QStringLiteral("<p><i>(vide)</i></p>");
-    return QStringLiteral("<pre>%1</pre>%2")
-        .arg(lines.join(QLatin1Char('\n')).toHtmlEscaped(), note);
+    // Un tableau d'une case : la seule façon fiable d'avoir un fond coloré
+    // avec des marges intérieures dans le HTML simplifié de Qt.
+    return QStringLiteral("<table width=\"100%\" cellpadding=\"8\" bgcolor=\"%1\"><tr><td>"
+                          "<pre>%2</pre></td></tr></table>%3")
+        .arg(theme::color(theme::Role::CodeBackground).name(),
+             lines.join(QLatin1Char('\n')).toHtmlEscaped(), note);
+}
+
+// Qt découpe un bloc de code en un paragraphe par ligne : deux blocs de code
+// consécutifs se fondraient en un seul. On glisse entre eux un paragraphe
+// invisible (une espace insécable).
+QString separateCodeBlocks(const QString &markdown)
+{
+    const QStringList lines = markdown.split(QLatin1Char('\n'));
+    QStringList out;
+    bool inFence = false, justClosed = false;
+    for (const QString &line : lines) {
+        const bool fence = line.trimmed().startsWith(QLatin1String("```"));
+        if (fence && !inFence && justClosed)
+            out << QStringLiteral("\u00a0") << QString();
+        if (fence)
+            inFence = !inFence;
+        if (fence && !inFence)
+            justClosed = true;
+        else if (!line.trimmed().isEmpty())
+            justClosed = false;
+        out << line;
+    }
+    return out.join(QLatin1Char('\n'));
+}
+
+QString colored(theme::Role role)
+{
+    return theme::color(role).name();
 }
 
 // Rend visibles les caractères invisibles (\t, \r...) d'une ligne.
@@ -64,12 +101,13 @@ QString statusSymbol(exercise_status st, bool unlocked)
 QColor statusColor(exercise_status st, bool unlocked)
 {
     switch (st) {
-    case STATUS_PASSED:  return QColor(0x2e, 0x9e, 0x44);
-    case STATUS_FAILED:  return QColor(0xd0, 0x3a, 0x3a);
-    case STATUS_STARTED: return QColor(0xd0, 0x8a, 0x10);
+    case STATUS_PASSED:  return theme::color(theme::Role::Success);
+    case STATUS_FAILED:  return theme::color(theme::Role::Failure);
+    case STATUS_STARTED: return theme::color(theme::Role::Warning);
     case STATUS_NEW:     break;
     }
-    return unlocked ? QColor() : QColor(0x88, 0x88, 0x88); // QColor() : couleur du thème
+    // QColor() invalide : couleur de texte normale du thème.
+    return unlocked ? QColor() : theme::color(theme::Role::Muted);
 }
 
 QString levelStars(int level)
@@ -95,9 +133,107 @@ QString langName(const char *lang)
 
 void setMarkdown(QTextBrowser *view, const QString &markdown)
 {
-    view->document()->setMarkdown(
-        markdown, QTextDocument::MarkdownFeatures(QTextDocument::MarkdownDialectGitHub |
-                                                  QTextDocument::MarkdownNoHTML));
+    QTextDocument *doc = view->document();
+    doc->setMarkdown(separateCodeBlocks(markdown), QTextDocument::MarkdownFeatures(QTextDocument::MarkdownDialectGitHub |
+                                                               QTextDocument::MarkdownNoHTML));
+    doc->setDocumentMargin(16);
+
+    // Le Markdown de Qt n'a pas de feuille de style : on parcourt le document
+    // pour donner un fond aux blocs de code (et un autre aux sorties de
+    // programme, marquées « text »), au code en ligne et aux tableaux.
+    const QColor code = theme::color(theme::Role::CodeBackground);
+    const QColor output = theme::color(theme::Role::OutputBackground);
+    const QColor inlineCode = theme::color(theme::Role::SoftBackground);
+
+    // Texte en chasse fixe : marqué « fixed pitch » (code en ligne) ou par la
+    // famille « monospace » (blocs de code indentés), selon le cas.
+    const auto isMono = [](const QTextCharFormat &cf) {
+        if (cf.fontFixedPitch())
+            return true;
+        const QStringList families = cf.fontFamilies().toStringList();
+        return families.contains(QLatin1String("monospace"));
+    };
+
+    // Ligne d'un bloc de code : bloc « ``` », ou bloc indenté de 4 espaces.
+    // Ce dernier n'a aucune marque : on le reconnaît à ses marges nulles (un
+    // paragraphe a des marges), hors liste, et à son texte tout en chasse fixe.
+    const auto isCode = [&isMono](const QTextBlock &b) {
+        if (!b.isValid())
+            return false;
+        const QTextBlockFormat bf = b.blockFormat();
+        if (bf.hasProperty(QTextFormat::BlockCodeFence))
+            return true;
+        if (b.textList() || b.text().isEmpty() || bf.topMargin() > 0 || bf.bottomMargin() > 0)
+            return false;
+        for (QTextBlock::iterator it = b.begin(); !it.atEnd(); ++it)
+            if (!isMono(it.fragment().charFormat()))
+                return false;
+        return true;
+    };
+
+    // D'abord repérer les lignes de code, PUIS modifier : les marges ajoutées
+    // fausseraient la détection des lignes suivantes.
+    QSet<int> codeBlocks;
+    for (QTextBlock b = doc->begin(); b.isValid(); b = b.next())
+        if (isCode(b))
+            codeBlocks.insert(b.blockNumber());
+    const auto inCode = [&codeBlocks](const QTextBlock &b) {
+        return b.isValid() && codeBlocks.contains(b.blockNumber());
+    };
+
+    QTextCursor cursor(doc);
+    cursor.beginEditBlock();
+    for (QTextBlock b = doc->begin(); b.isValid(); b = b.next()) {
+        if (inCode(b)) {
+            QTextBlockFormat bf = b.blockFormat();
+            const bool isOutput = bf.stringProperty(QTextFormat::BlockCodeLanguage) == QLatin1String("text");
+            bf.setBackground(isOutput ? output : code);
+            bf.setLeftMargin(4);
+            // Un peu d'air avant la première ligne et après la dernière.
+            if (!inCode(b.previous()))
+                bf.setTopMargin(8);
+            if (!inCode(b.next()))
+                bf.setBottomMargin(8);
+            cursor.setPosition(b.position());
+            cursor.setBlockFormat(bf);
+            continue;
+        }
+        for (QTextBlock::iterator it = b.begin(); !it.atEnd(); ++it) {
+            const QTextFragment frag = it.fragment();
+            if (!frag.isValid() || !isMono(frag.charFormat()))
+                continue;
+            QTextCharFormat cf;
+            cf.setBackground(inlineCode);
+            cursor.setPosition(frag.position());
+            cursor.setPosition(frag.position() + frag.length(), QTextCursor::KeepAnchor);
+            cursor.mergeCharFormat(cf);
+        }
+    }
+
+    // Tableaux : bordure fine et discrète, cellules aérées, en-tête teinté.
+    for (QTextFrame *frame : doc->rootFrame()->childFrames()) {
+        auto *table = qobject_cast<QTextTable *>(frame);
+        if (!table)
+            continue;
+        QTextTableFormat tf = table->format();
+        tf.setBorder(1);
+        tf.setBorderBrush(theme::color(theme::Role::Border));
+        tf.setBorderStyle(QTextFrameFormat::BorderStyle_Solid);
+        tf.setBorderCollapse(true);
+        tf.setCellSpacing(0);
+        tf.setCellPadding(6);
+        table->setFormat(tf);
+        for (int col = 0; col < table->columns(); col++) {
+            QTextTableCell cell = table->cellAt(0, col);
+            QTextCharFormat cf = cell.format();
+            cf.setBackground(inlineCode);
+            cell.setFormat(cf);
+        }
+    }
+    cursor.endEditBlock();
+    // Le curseur de la vue est resté en fin de document : Qt ferait défiler
+    // jusqu'à lui à l'affichage. On le replace au début.
+    view->moveCursor(QTextCursor::Start);
 }
 
 QString lessonMarkdown(const lesson &l)
@@ -160,11 +296,13 @@ QString testDetailsHtml(const exercise &ex, const test_case &tc, const test_outc
 {
     QString html;
     if (o.result == VERDICT_PASS) {
-        html += QStringLiteral("<h3 style=\"color:#2e9e44\">✓ %1</h3><p>Réussi en %2 ms.</p>")
-                    .arg(qs(tc.name).toHtmlEscaped()).arg(o.res.elapsed_ms);
+        html += QStringLiteral("<h3 style=\"color:%1\">✓ %2</h3><p>Réussi en %3 ms.</p>")
+                    .arg(colored(theme::Role::Success), qs(tc.name).toHtmlEscaped())
+                    .arg(o.res.elapsed_ms);
     } else {
-        html += QStringLiteral("<h3 style=\"color:#d03a3a\">✗ %1 — %2</h3>")
-                    .arg(qs(tc.name).toHtmlEscaped(), qs(verdict_label(o.result)));
+        html += QStringLiteral("<h3 style=\"color:%1\">✗ %2 — %3</h3>")
+                    .arg(colored(theme::Role::Failure), qs(tc.name).toHtmlEscaped(),
+                         qs(verdict_label(o.result)));
         strbuf why = STRBUF_INIT;
         check_explain(&ex, &tc, &o, &why);
         if (why.len)
@@ -198,9 +336,12 @@ QString testDetailsHtml(const exercise &ex, const test_case &tc, const test_outc
                                    "diffèrent (retour à la ligne final, \\r\\n ?).</p>");
         else
             html += QStringLiteral("<p><b>Première différence à la ligne %1</b></p>"
-                                   "<table cellspacing=\"4\"><tr><td>attendu</td><td>%2</td></tr>"
-                                   "<tr><td>obtenu</td><td>%3</td></tr></table>")
-                        .arg(d.line).arg(visible(d.expected_line), visible(d.actual_line));
+                                   "<table cellspacing=\"0\" cellpadding=\"4\">"
+                                   "<tr><td style=\"color:%2\">attendu</td><td>%4</td></tr>"
+                                   "<tr><td style=\"color:%3\">obtenu</td><td>%5</td></tr></table>")
+                        .arg(d.line)
+                        .arg(colored(theme::Role::Success), colored(theme::Role::Failure),
+                             visible(d.expected_line), visible(d.actual_line));
         output_diff_free(&d);
         html += QStringLiteral("<p><b>Sortie attendue</b></p>") + pre(qs(tc.expected));
     }
@@ -213,12 +354,12 @@ QString testDetailsHtml(const exercise &ex, const test_case &tc, const test_outc
 QString buildLogHtml(const char *log, bool failed)
 {
     QString html = failed
-        ? QStringLiteral("<h3 style=\"color:#d03a3a\">✗ La compilation a échoué</h3>"
+        ? QStringLiteral("<h3 style=\"color:%1\">✗ La compilation a échoué</h3>"
                          "<p>Corrige d'abord la <b>première</b> erreur : les suivantes en "
-                         "découlent souvent.</p>")
-        : QStringLiteral("<h3 style=\"color:#d08a10\">Avertissements du compilateur</h3>"
+                         "découlent souvent.</p>").arg(colored(theme::Role::Failure))
+        : QStringLiteral("<h3 style=\"color:%1\">Avertissements du compilateur</h3>"
                          "<p>Un avertissement signale souvent un vrai bug : en entreprise, on "
-                         "compile généralement avec -Werror.</p>");
+                         "compile généralement avec -Werror.</p>").arg(colored(theme::Role::Warning));
     return html + pre(qs(log));
 }
 

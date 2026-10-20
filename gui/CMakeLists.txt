@@ -10,7 +10,7 @@
 # (ou simplement « make gui » / « make gui-test » depuis la racine)
 
 cmake_minimum_required(VERSION 3.16)
-project(cl-trainer-gui VERSION 0.4.0 LANGUAGES C CXX)
+project(cl-trainer-gui VERSION 0.5.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -53,7 +53,8 @@ add_library(trainer-ui STATIC
     src/exerciseview.cpp src/exerciseview.h
     src/lessonview.cpp src/lessonview.h
     src/mainwindow.cpp src/mainwindow.h
-    src/format.cpp src/format.h)
+    src/format.cpp src/format.h
+    src/theme.cpp src/theme.h)
 target_include_directories(trainer-ui PUBLIC src)
 target_link_libraries(trainer-ui PUBLIC trainer Qt6::Widgets Qt6::Concurrent)
 target_compile_options(trainer-ui PRIVATE ${WARNINGS})
@@ -71,6 +72,10 @@ target_link_libraries(test-gui PRIVATE trainer-ui Qt6::Test)
 add_test(NAME gui COMMAND test-gui)
 set_tests_properties(gui PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;TRAINER_ROOT=${ROOT}")
+
+# --- Captures d'écran de la documentation (pas un test : « make gui-screenshots »).
+add_executable(gui-screenshots tests/screenshots.cpp)
+target_link_libraries(gui-screenshots PRIVATE trainer-ui Qt6::Test)
 
 # --- Installation : binaire + entrée dans le menu des applications.
 install(TARGETS trainer-gui RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

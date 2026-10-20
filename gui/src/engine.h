@@ -69,6 +69,7 @@ public:
 
     struct Summary {
         size_t passed = 0, total = 0;
+        size_t lessonsRead = 0, lessons = 0;
         QStringList weakTopics;
     };
     Summary summary() const;

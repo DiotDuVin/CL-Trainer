@@ -23,8 +23,12 @@ Feuille de route :
    `validate` ; 3 chapitres C++ et 9 exercices.
 5b. Cours C++ 4 à 14 et exercices restants, par lots (plan ci-dessous) ✅ :
    14 chapitres, 35 exercices, dont deux en plusieurs fichiers (`files:`).
-5c. Embellissement de l'application (thème clair/sombre, mise en page), puis `review`
-   (répétition espacée Leitner, avec les champs `box=` et `due=` dans `progress.txt`).
+5c. Embellissement de l'application ✅ (v0.5.0) : style Fusion avec palettes claire et
+   sombre (`gui/src/theme.*`, mode automatique selon le bureau), badges, recherche dans
+   le catalogue, compteurs par chapitre, fond des blocs de code ; captures régénérées par
+   `make gui-screenshots`.
+5d. `review` : répétition espacée Leitner, avec les champs `box=` et `due=` dans
+   `progress.txt`.
 
    Plan C++ : 1 Premier programme ✅, 2 Références et const ✅, 3 Fonctions modernes ✅,
    4 vector/array ✅, 5 Classes ✅, 6 RAII et destructeurs ✅, 7 new/delete et pointeurs

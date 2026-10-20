@@ -13,9 +13,12 @@ outils (`g++`, `git`, `dotnet`, `cargo`), puis compare la sortie aux tests.
 > références, fonctions, vector/array, classes, RAII, pointeurs intelligents, déplacement,
 > map/set, algorithmes et lambdas, templates, exceptions, héritage et polymorphisme,
 > organisation d'un projet en plusieurs fichiers), 35 exercices.
-> À venir : embellissement de l'application, révision espacée, puis Git, C# et Rust.
+> L'application graphique a un thème clair et un thème sombre (étape 5c).
+> À venir : révision espacée, puis Git, C# et Rust.
 
-![Application graphique : résultats des tests](docs/images/gui-echec.png)
+![Application graphique : un cours, thème clair](docs/images/gui-cours.png)
+
+![Application graphique : résultats des tests, thème sombre](docs/images/gui-echec-sombre.png)
 
 ## Installation
 
@@ -46,12 +49,15 @@ make && make gui                            # produit ./trainer et ./trainer-gui
 ./trainer-gui
 ```
 
-- **À gauche** : le catalogue avec l'état de chaque exercice, la progression et les
-  points faibles.
+- **À gauche** : la recherche (Ctrl+F : titre, thème, tags, sans tenir compte des
+  accents), le catalogue par chapitre avec l'état de chaque exercice et le compteur
+  « réussis/total », puis la progression et les points faibles.
 - **À droite** : l'énoncé, les résultats test par test (entrée, différence, erreurs) et la
   correction.
 - **Raccourcis** : « Suivant » (Ctrl+N) choisit l'exercice recommandé ; « Vérifier »
   (Ctrl+Entrée) compile et teste.
+- **Thème** (en haut à droite) : automatique (suit le réglage clair/sombre du bureau),
+  clair ou sombre. Le choix est mémorisé.
 - Le code s'écrit dans VS Code (bouton « Ouvrir dans VS Code »). Une vérification lancée
   depuis VS Code (Ctrl+Maj+B) ou depuis le terminal met la fenêtre à jour automatiquement.
 
@@ -108,6 +114,7 @@ make asan        # mêmes tests, moteur compilé avec AddressSanitizer + UBSan
 make valgrind    # tests sous valgrind (aucune fuite tolérée)
 make CC=clang    # vérifier avec un second compilateur
 make gui-test    # application graphique : parcours d'élève simulé avec QTest
+make gui-screenshots # régénère les captures de docs/images (vrai catalogue, 2 thèmes)
 ```
 
 La CI GitHub (`.github/workflows/ci.yml`) lance tout cela à chaque push et pull request,

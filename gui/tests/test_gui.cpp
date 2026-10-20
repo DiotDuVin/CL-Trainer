@@ -3,6 +3,7 @@
 // « offscreen ». Les dossiers sont temporaires : la vraie progression n'est
 // jamais touchée.
 #include <QFile>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QProgressBar>
 #include <QPushButton>
@@ -15,8 +16,10 @@
 #include "catalogview.h"
 #include "engine.h"
 #include "exerciseview.h"
+#include "format.h"
 #include "lessonview.h"
 #include "mainwindow.h"
+#include "theme.h"
 
 class GuiTest : public QObject {
     Q_OBJECT
@@ -63,6 +66,7 @@ static bool runCheck(ExerciseView *view)
 void GuiTest::studentJourney()
 {
     Engine engine(QStringLiteral("test-gui"));
+    theme::apply(theme::Mode::Light);
     MainWindow window(engine);
     window.show();
     ExerciseView *view = window.exerciseView();
@@ -135,6 +139,32 @@ void GuiTest::studentJourney()
     const QByteArray path = QByteArray(engine.config().progress_path);
     QCOMPARE(progress_record(path.constData(), "cpp.basics.sum", EVENT_CHECK_PASSED, 0), 0);
     QTRY_COMPARE_WITH_TIMEOUT(progressBar->value(), 2, 5000);
+
+    // Recherche : sans tenir compte des accents ni des majuscules.
+    CatalogView *catalog = window.catalogView();
+    const int all = catalog->visibleCount();
+    QCOMPARE(all, 3); // 1 cours + 2 exercices
+    auto *search = window.findChild<QLineEdit *>("search");
+    search->setText(QStringLiteral("PRENOM"));      // titre « Bonjour, prénom »
+    QCOMPARE(catalog->visibleCount(), 1);
+    search->setText(QStringLiteral("introuvable"));
+    QCOMPARE(catalog->visibleCount(), 0);
+    // Sélectionner un élément masqué efface le filtre (et le champ).
+    QVERIFY(catalog->selectId(QStringLiteral("cpp.basics.sum")));
+    QCOMPARE(catalog->visibleCount(), all);
+    QVERIFY(search->text().isEmpty());
+
+    // Thème : la palette et les couleurs de statut changent, et le choix est
+    // enregistré pour le prochain lancement.
+    window.setThemeMode(theme::Mode::Dark);
+    QVERIFY(theme::isDark());
+    QVERIFY(QApplication::palette().color(QPalette::Window).lightness() < 128);
+    QCOMPARE(theme::savedMode(), theme::Mode::Dark);
+    const QColor darkGreen = format::statusColor(STATUS_PASSED, true);
+    screenshot(&window, "sombre");
+    window.setThemeMode(theme::Mode::Light);
+    QVERIFY(!theme::isDark());
+    QVERIFY(format::statusColor(STATUS_PASSED, true) != darkGreen);
 }
 
 QTEST_MAIN(GuiTest)
