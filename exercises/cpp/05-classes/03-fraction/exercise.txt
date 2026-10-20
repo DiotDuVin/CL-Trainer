@@ -1,0 +1,95 @@
+id: cpp.classes.fraction
+title: Fractions et surcharge d'opérateurs
+lang: cpp
+level: 3
+topic: classes
+tags: class, operators, invariant, gcd
+requires: cpp.classes.clock
+files: main.cpp
+estimated_min: 30
+
+## statement
+Écris une classe `Fraction` qui représente un nombre rationnel **toujours sous
+forme irréductible**, avec un dénominateur strictement positif :
+`Fraction(2, -4)` vaut -1/2 et `Fraction(6, 3)` vaut 2/1.
+
+Elle doit fournir :
+
+- `Fraction(long num, long den)` (on garantit `den != 0`) ;
+- `long num() const`, `long den() const` ;
+- les opérateurs `+` et `*` entre deux fractions ;
+- `operator<<` : affiche `num/den`, ou seulement `num` si le dénominateur vaut 1.
+
+Chaque ligne de l'entrée contient un calcul `a/b op c/d` (op est `+` ou `*`) ;
+le programme affiche le résultat :
+
+    entrée : 1/2 + 1/3       sortie : 5/6
+             2/3 * 3/4                1/2
+             1/2 + 1/2                1
+
+## hints
+Le constructeur fait tout le travail : avec un objet toujours normalisé, les
+opérateurs n'ont qu'à construire une nouvelle `Fraction` et c'est le
+constructeur qui simplifie.
+---
+`std::gcd(a, b)` (en-tête <numeric>, C++17) donne le PGCD. Il renvoie une
+valeur positive, même si a ou b est négatif.
+---
+a/b + c/d = (a·d + c·b) / (b·d), et a/b × c/d = (a·c) / (b·d). Pour le signe,
+si le dénominateur est négatif, change le signe des deux.
+
+## explanation
+Solution de référence :
+
+    class Fraction {
+    public:
+        Fraction(long num, long den) : num_(num), den_(den) {
+            if (den_ < 0) {        // signe porté par le numérateur
+                num_ = -num_;
+                den_ = -den_;
+            }
+            const long g = std::gcd(num_, den_);
+            num_ /= g;
+            den_ /= g;
+        }
+        long num() const { return num_; }
+        long den() const { return den_; }
+
+    private:
+        long num_, den_; // invariant : den_ > 0 et pgcd(num_, den_) == 1
+    };
+
+    Fraction operator+(const Fraction &a, const Fraction &b) {
+        return Fraction(a.num() * b.den() + b.num() * a.den(), a.den() * b.den());
+    }
+    Fraction operator*(const Fraction &a, const Fraction &b) {
+        return Fraction(a.num() * b.num(), a.den() * b.den());
+    }
+    std::ostream &operator<<(std::ostream &out, const Fraction &f) {
+        out << f.num();
+        if (f.den() != 1)
+            out << '/' << f.den();
+        return out;
+    }
+
+Points importants :
+
+- **L'invariant est garanti par le constructeur.** Les opérateurs ne
+  s'occupent pas de simplifier : ils construisent une `Fraction`, qui se
+  normalise d'elle-même. Une seule fonction à écrire juste, au lieu de trois.
+  Conséquence : deux fractions égales ont toujours la même représentation, et
+  `==` pourrait se contenter de comparer les membres.
+- **Les opérateurs sont des fonctions libres**, pas des méthodes, et
+  n'utilisent que l'interface publique. Ainsi `a + b` traite `a` et `b`
+  symétriquement.
+- Pour 0, `std::gcd(0, d)` vaut `d` : 0/5 devient 0/1, et s'affiche « 0 ».
+- Les produits `a.den() * b.den()` peuvent dépasser la capacité d'un `long`
+  pour de très grandes fractions. Une version robuste simplifierait avant de
+  multiplier. Les tests restent dans des valeurs raisonnables.
+
+## common_mistakes
+- Simplifier dans chaque opérateur au lieu du constructeur : duplication, et
+  un oubli suffit pour casser l'invariant.
+- Oublier de normaliser le signe : 1/-2 et -1/2 seraient deux représentations
+  différentes du même nombre.
+- Afficher « 2/1 » au lieu de « 2 ».

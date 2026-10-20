@@ -1,0 +1,93 @@
+id: cpp.classes.account
+title: Un compte bancaire qui protège son solde
+lang: cpp
+level: 2
+topic: classes
+tags: class, encapsulation, const, invariant
+requires: cpp.containers.above-average
+files: main.cpp
+estimated_min: 20
+
+## statement
+Complète la classe `Account`. Son **invariant** : le solde n'est jamais
+négatif. Les montants sont des entiers (en centimes).
+
+- `Account(long initial)` : solde initial (un montant négatif donne 0) ;
+- `bool deposit(long amount)` : ajoute `amount` s'il est strictement positif ;
+  renvoie `false` sinon (et ne change rien) ;
+- `bool withdraw(long amount)` : retire `amount` s'il est strictement positif
+  et ne dépasse pas le solde ; renvoie `false` sinon ;
+- `long balance() const` : le solde ;
+- `int operations() const` : le nombre d'opérations **acceptées**.
+
+Le `main` fourni lit le solde initial, puis des commandes :
+
+    entrée : 100              sortie : ok
+             depot 50                  refusé
+             retrait 500               solde 150 (1 opérations)
+             solde
+
+## hints
+Les données (`balance_`, `operations_`) sont des membres privés. Initialise-les
+dans la liste d'initialisation du constructeur : `: balance_(...), operations_(0)`.
+---
+Dans `withdraw`, vérifie toutes les conditions AVANT de modifier quoi que ce
+soit : un objet ne doit jamais passer par un état invalide.
+---
+`balance()` et `operations()` ne modifient rien : elles doivent être `const`
+(c'est déjà le cas dans le code fourni, garde-le).
+
+## explanation
+Solution de référence :
+
+    class Account {
+    public:
+        explicit Account(long initial) : balance_(initial < 0 ? 0 : initial), operations_(0) {}
+
+        bool deposit(long amount) {
+            if (amount <= 0)
+                return false;
+            balance_ += amount;
+            ++operations_;
+            return true;
+        }
+
+        bool withdraw(long amount) {
+            if (amount <= 0 || amount > balance_)
+                return false;
+            balance_ -= amount;
+            ++operations_;
+            return true;
+        }
+
+        long balance() const { return balance_; }
+        int operations() const { return operations_; }
+
+    private:
+        long balance_;    // invariant : >= 0
+        int operations_;
+    };
+
+Points importants :
+
+- `balance_` est **privé** : seules `deposit` et `withdraw` le modifient, et
+  elles vérifient la règle. Personne ne peut écrire `a.balance_ = -1`.
+- Le constructeur **établit** l'invariant (un solde initial négatif devient
+  0) ; chaque méthode le **préserve**.
+- `explicit` sur un constructeur à un seul paramètre interdit les conversions
+  implicites. Sans lui, `Account a = 100;`, ou une fonction attendant un
+  `Account` appelée avec `100`, compileraient en silence. C'est une bonne
+  habitude dès qu'un constructeur prend un seul argument.
+- Les méthodes `const` peuvent être appelées sur un `const Account &` : c'est
+  ce que fait la fonction `report` du `main`.
+- Une opération refusée renvoie `false` au lieu d'afficher un message : la
+  classe ne décide pas de l'affichage, c'est l'appelant qui le fait. On sépare
+  la logique et la présentation (comme libtrainer et l'interface).
+
+## common_mistakes
+- Modifier le solde puis « annuler » si le résultat est négatif : l'objet
+  passe un instant par un état invalide, et c'est fragile.
+- Compter les opérations refusées.
+- Oublier `const` sur `balance()` : `report(const Account &)` ne compile plus.
+- Accepter les dépôts négatifs (un « dépôt » de -500 est un retrait déguisé
+  qui contourne le contrôle).

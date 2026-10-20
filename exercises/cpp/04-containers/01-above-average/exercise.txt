@@ -1,0 +1,77 @@
+id: cpp.containers.above-average
+title: Au-dessus de la moyenne
+lang: cpp
+level: 2
+topic: containers
+tags: vector, loops
+requires: cpp.functions.longest
+files: main.cpp
+estimated_min: 15
+
+## statement
+L'entrée contient des notes (entiers), séparées par des blancs. Affiche, dans
+l'ordre de l'entrée et séparées par un espace, les notes **strictement
+supérieures** à la moyenne de toutes les notes.
+
+S'il n'y a aucune note, ou aucune au-dessus de la moyenne, affiche `aucune`.
+
+    entrée : 10 20 30 5
+    sortie : 20 30           (moyenne : 16.25)
+
+## hints
+Il faut connaître la moyenne AVANT de savoir quelles notes afficher : on doit
+donc garder toutes les notes en mémoire. C'est le rôle d'un `std::vector<int>`
+rempli avec `push_back`.
+---
+Calcule la moyenne en `double` : `static_cast<double>(somme) / notes.size()`.
+La division entière tronque vers zéro : une moyenne de -2.5 deviendrait -2, et
+une note de -2 ne serait plus comptée comme au-dessus.
+---
+Pour les espaces : affiche un espace AVANT chaque nombre sauf le premier
+(un booléen `first`), afin de ne pas laisser d'espace en fin de ligne.
+
+## explanation
+Solution de référence :
+
+    std::vector<int> notes;
+    int n = 0;
+    while (std::cin >> n)
+        notes.push_back(n);
+
+    long long sum = 0;
+    for (int x : notes)
+        sum += x;
+    const double average = notes.empty() ? 0.0
+                           : static_cast<double>(sum) / static_cast<double>(notes.size());
+
+    bool first = true;
+    for (int x : notes) {
+        if (x > average) {
+            std::cout << (first ? "" : " ") << x;
+            first = false;
+        }
+    }
+    std::cout << (first ? "aucune" : "") << '\n';
+
+Points importants :
+
+- On a besoin de **deux passages** sur les données (calculer la moyenne, puis
+  filtrer) : il faut donc les stocker. Ici, la taille n'est pas connue à
+  l'avance, et c'est exactement le cas d'usage de `std::vector`.
+- La somme est dans un `long long` : beaucoup de grandes notes pourraient
+  dépasser la capacité d'un `int`.
+- La comparaison `x > average` compare un `int` à un `double` : `x` est
+  converti en `double`, ce qui est exact ici.
+- Le booléen `first` sert à la fois à placer les espaces et à savoir si l'on a
+  affiché quelque chose.
+
+## common_mistakes
+- Division entière pour la moyenne : `sum / notes.size()` sans conversion. Le
+  résultat semble juste avec des notes positives, mais devient faux dès que la
+  moyenne est négative (troncature vers zéro). Pire : `notes.size()` étant non
+  signé, une somme négative est convertie en un énorme nombre positif !
+- Utiliser `>=` au lieu de `>` : une note égale à la moyenne n'est pas
+  « au-dessus ».
+- Diviser par zéro quand l'entrée est vide.
+- Laisser un espace en fin de ligne (ici toléré par la comparaison, mais
+  certains correcteurs automatiques le refusent).

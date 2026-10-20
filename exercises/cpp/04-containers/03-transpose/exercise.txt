@@ -1,0 +1,61 @@
+id: cpp.containers.transpose
+title: Transposer une matrice
+lang: cpp
+level: 2
+topic: containers
+tags: vector, 2d
+requires: cpp.containers.above-average
+files: main.cpp
+estimated_min: 20
+
+## statement
+La première ligne contient deux entiers R et C (1 ≤ R, C ≤ 100) : le nombre
+de lignes et de colonnes d'une matrice. Viennent ensuite R lignes de C entiers.
+
+Affiche la **transposée** : C lignes de R entiers, séparés par un espace.
+L'élément en ligne i, colonne j devient l'élément en ligne j, colonne i.
+
+    entrée :  2 3          sortie :  1 4
+              1 2 3                  2 5
+              4 5 6                  3 6
+
+## hints
+Stocke la matrice dans un `std::vector<std::vector<int>>` de R lignes de C
+colonnes : `std::vector<std::vector<int>> m(r, std::vector<int>(c));`
+---
+Pour afficher la transposée, la boucle EXTERNE parcourt les colonnes j de la
+matrice d'origine, la boucle INTERNE ses lignes i : on affiche `m[i][j]`.
+
+## explanation
+Solution de référence :
+
+    std::size_t r = 0, c = 0;
+    std::cin >> r >> c;
+    std::vector<std::vector<int>> m(r, std::vector<int>(c));
+    for (auto &row : m)
+        for (int &cell : row)
+            std::cin >> cell;
+
+    for (std::size_t j = 0; j < c; ++j) {
+        for (std::size_t i = 0; i < r; ++i)
+            std::cout << (i ? " " : "") << m[i][j];
+        std::cout << '\n';
+    }
+
+Points importants :
+
+- `std::vector<std::vector<int>>` : chaque ligne est un vecteur. Le
+  constructeur `(r, std::vector<int>(c))` crée r copies d'une ligne de c zéros.
+- La lecture utilise des **références** dans les boucles for sur intervalle
+  (`auto &row`, `int &cell`) : sans `&`, on remplirait des copies et la
+  matrice resterait pleine de zéros. C'est l'erreur la plus fréquente.
+- `std::size_t` pour les dimensions et les indices : pas de comparaison
+  signé/non signé avec `size()`.
+- Pour de grosses matrices, un seul `std::vector<int>` de taille r × c, avec
+  l'indice `i * c + j`, est plus efficace (un seul bloc mémoire). C'est ce que
+  font les bibliothèques de calcul.
+
+## common_mistakes
+- `for (auto row : m)` sans `&` pendant la lecture : on remplit des copies.
+- Inverser les boucles : on réaffiche la matrice d'origine.
+- Créer la matrice avec C lignes et R colonnes : accès hors limites dès que R ≠ C.

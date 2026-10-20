@@ -1,0 +1,26 @@
+=== test: trois valeurs
+--- stdin
+3
+1 2 3
+--- stdout
+a : 1 2 3
+b : 101 2 3
+c : 1 2 6
+
+=== test: une seule valeur
+--- stdin
+1
+5
+--- stdout
+a : 5
+b : 105
+c : 10
+
+=== test: négatifs [hidden]
+--- stdin
+4
+-1 0 7 -8
+--- stdout
+a : -1 0 7 -8
+b : 99 0 7 -8
+c : -1 0 7 -16

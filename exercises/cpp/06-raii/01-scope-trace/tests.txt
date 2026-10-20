@@ -1,0 +1,29 @@
+=== test: exemple
+--- stdin
+2 -1
+--- stdout
+> visit 2
+  > visit 1
+    > visit 0
+    < visit 0
+  < visit 1
+< visit 2
+
+=== test: arrêt anticipé
+--- stdin
+3 2
+--- stdout
+> visit 3
+  > visit 2
+  < visit 2
+< visit 3
+
+=== test: plusieurs traces [hidden]
+--- stdin
+0 -1
+1 1
+--- stdout
+> visit 0
+< visit 0
+> visit 1
+< visit 1

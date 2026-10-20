@@ -1,0 +1,49 @@
+=== test: exemple
+--- stdin
+100
+depot 50
+retrait 500
+solde
+--- stdout
+ok
+refusé
+solde 150 (1 opérations)
+
+=== test: retrait exact
+--- stdin
+40
+retrait 40
+solde
+retrait 1
+solde
+--- stdout
+ok
+solde 0 (1 opérations)
+refusé
+solde 0 (1 opérations)
+
+=== test: montants invalides [hidden]
+--- stdin
+10
+depot 0
+depot -5
+retrait -5
+retrait 0
+solde
+--- stdout
+refusé
+refusé
+refusé
+refusé
+solde 10 (0 opérations)
+
+=== test: solde initial négatif [hidden]
+--- stdin
+-30
+solde
+depot 30
+solde
+--- stdout
+solde 0 (0 opérations)
+ok
+solde 30 (1 opérations)
