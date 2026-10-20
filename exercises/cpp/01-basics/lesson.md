@@ -2,7 +2,7 @@ id: cpp.lesson.basics
 title: Premier programme C++
 lang: cpp
 topic: basics
-estimated_min: 15
+estimated_min: 20
 ---
 ## Ce que tu connais en C
 
@@ -43,6 +43,79 @@ Un fichier C++ porte l'extension `.cpp`. On le compile avec `g++` (et non
 14, 17, 20, 23) ; C++17 est très répandu en entreprise et c'est la version
 utilisée par ce cours. C'est exactement ce que fait `trainer check`.
 
+## Les flux : entrée, sortie et erreurs standard
+
+Tout programme lancé dans un terminal reçoit trois **flux** (*streams*),
+ouverts automatiquement avant même que `main` ne commence :
+
+| Flux | En C | En C++ | Sert à | Par défaut |
+|---|---|---|---|---|
+| entrée standard (*stdin*) | `stdin`, `scanf` | `std::cin` | lire ce que l'utilisateur tape | le clavier |
+| sortie standard (*stdout*) | `stdout`, `printf` | `std::cout` | afficher les résultats | l'écran |
+| erreur standard (*stderr*) | `stderr`, `fprintf(stderr, …)` | `std::cerr` | afficher les erreurs | l'écran |
+
+Un flux est une **suite d'octets qui circule dans un seul sens** : on lit
+dans un flux d'entrée, on écrit dans un flux de sortie. Le programme ne sait
+pas d'où viennent ces octets ni où ils vont : c'est le shell qui branche les
+flux, et on peut les rediriger.
+
+    ./main                    # clavier -> programme -> écran
+    ./main < entree.txt       # stdin lu depuis un fichier
+    ./main > resultat.txt     # stdout écrit dans un fichier (stderr reste à l'écran)
+    ./main 2> erreurs.txt     # stderr dans un fichier
+    echo "Ada" | ./main       # stdout d'echo branché sur stdin de main
+
+C'est exactement ce que fait `trainer check` : il envoie l'entrée de chaque
+test sur le **stdin** de ton programme, puis compare son **stdout** à la
+sortie attendue. Ce que tu écris sur **stderr** n'est pas comparé, mais il
+est affiché en cas d'échec : c'est l'endroit idéal pour tes messages de
+débogage.
+
+### Les opérateurs `<<` et `>>`
+
+En C++, on écrit dans un flux avec `<<` et on lit avec `>>`. **La flèche
+montre le sens dans lequel vont les données** :
+
+```cpp
+std::cout << x;    // x va VERS cout   : écriture (on « insère » dans le flux)
+std::cin >> x;     // cin va VERS x    : lecture  (on « extrait » du flux)
+std::cerr << "erreur\n";   // comme cout, mais sur la sortie d'erreur
+```
+
+| Opérateur | Nom | Sens | Équivalent C |
+|---|---|---|---|
+| `flux << valeur` | insertion | valeur -> flux (écrire) | `printf` / `fprintf` |
+| `flux >> variable` | extraction | flux -> variable (lire) | `scanf` |
+
+Ces opérations s'**enchaînent** : `std::cout << a << b` écrit `a` puis `b`.
+C'est possible parce que `std::cout << a` renvoie `std::cout` lui-même, sur
+lequel on applique ensuite `<< b`. De même, `std::cin >> a >> b` lit deux
+valeurs à la suite.
+
+```cpp example
+#include <iostream>
+
+int main() {
+    int a = 6, b = 7;
+    std::cout << a << " x " << b << " = " << a * b << '\n';   // sortie standard
+    std::cerr << "message de débogage : a vaut " << a << '\n'; // erreur standard
+}
+```
+
+```output
+6 x 7 = 42
+```
+
+La ligne écrite sur `std::cerr` n'apparaît pas dans la sortie attendue :
+elle part sur l'autre flux. Dans un terminal, tu verrais pourtant les deux
+lignes, puisque stdout et stderr arrivent tous les deux à l'écran.
+
+Retiens aussi que `<<` et `>>` sont, à l'origine, les opérateurs de décalage
+de bits du C (`1 << 3` vaut 8). Le C++ leur donne un **autre sens** pour les
+flux, grâce à la *surcharge d'opérateurs* (chapitre 3). Le compilateur
+choisit selon le type : avec un flux à gauche, c'est une écriture ou une
+lecture ; avec deux entiers, c'est un décalage.
+
 ## Premier programme
 
 ```cpp example
@@ -69,7 +142,6 @@ Ce qu'il faut remarquer :
 - **`std::cout << x`** affiche `x`, quel que soit son type. Il n'y a pas de
   format comme `%d` : le compilateur choisit la bonne façon d'afficher grâce
   au type. Une erreur de type devient impossible.
-- **`<<` s'enchaîne** : `std::cout << a << b << c`.
 - **`'\n'` passe à la ligne.**
 - **`int main()`** : en C++, des parenthèses vides signifient « aucun
   paramètre » (en C, avant C23, il fallait écrire `void`).
@@ -208,6 +280,9 @@ int main() {
 
 ## Pièges
 
+- **Inverser `<<` et `>>`.** `std::cin << x` ou `std::cout >> x` ne compilent
+  pas (« no match for operator<< »). Pense à la flèche : les données vont de
+  `x` vers `cout`, et de `cin` vers `x`.
 - **`std::endl` au lieu de `'\n'`.** `std::endl` passe à la ligne **et**
   vide le tampon de sortie à chaque fois, ce qui est inutile et lent dans une
   boucle. Réserve-le aux cas où l'affichage doit sortir immédiatement.
@@ -234,14 +309,23 @@ int main() {
 ## Vérifie ta compréhension
 
 1. Pourquoi `std::cout << x` ne peut-il pas avoir le bug d'un mauvais `%d` ?
-2. Que lit `std::cin >> s` si l'entrée est `  Ada Lovelace` ?
-3. Que vaut `std::string("été").size()` ?
+2. Que fait `std::cin << x` ? Et `std::cout >> x` ?
+3. Ton programme affiche son résultat avec `std::cout` et un message de
+   débogage avec `std::cerr`. Lequel des deux `trainer check` compare-t-il à
+   la sortie attendue ?
+4. Que lit `std::cin >> s` si l'entrée est `  Ada Lovelace` ?
+5. Que vaut `std::string("été").size()` ?
 
 ### Réponses
 
 1. Le compilateur choisit la façon d'afficher selon le **type** de `x` (on
    parle de **surcharge** de l'opérateur `<<`, vue au chapitre 3) : aucun
    format à écrire, donc aucun format faux possible.
-2. `Ada` : les espaces initiaux sont sautés, et la lecture s'arrête au premier
+2. Aucun des deux ne compile : `<<` est réservé aux flux de sortie et `>>`
+   aux flux d'entrée. La flèche indique le sens des données : de `x` vers
+   `cout`, de `cin` vers `x`.
+3. Seulement `std::cout` (la sortie standard). Le message sur `std::cerr`
+   n'est pas comparé, mais il est affiché si un test échoue.
+4. `Ada` : les espaces initiaux sont sautés, et la lecture s'arrête au premier
    blanc. `Lovelace` reste dans l'entrée pour la lecture suivante.
-3. `5` : `size()` compte les octets, et chaque « é » en occupe deux en UTF-8.
+5. `5` : `size()` compte les octets, et chaque « é » en occupe deux en UTF-8.
