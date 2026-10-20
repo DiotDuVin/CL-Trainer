@@ -59,5 +59,6 @@ void test_progress_suite(void);
 void test_stats_suite(void);
 void test_catalog_suite(void);
 void test_json_suite(void);
+void test_lesson_suite(void);
 
 #endif

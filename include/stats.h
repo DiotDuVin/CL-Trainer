@@ -51,6 +51,7 @@ typedef enum {
     RECO_RESUME,        /* reprendre un exercice commencé et pas réussi */
     RECO_NEXT,          /* nouvel exercice : niveau le plus bas d'abord */
     RECO_WEAK_TOPIC,    /* nouvel exercice choisi dans un thème faible */
+    RECO_LESSON,        /* lire d'abord le cours de l'exercice suivant (champ lesson) */
     RECO_ALL_DONE,      /* tout est réussi */
     RECO_LOCKED,        /* il reste des exercices, mais tous verrouillés */
 } reco_reason;
@@ -59,6 +60,8 @@ typedef struct {
     const exercise *ex;     /* NULL si RECO_ALL_DONE / RECO_LOCKED */
     reco_reason reason;
     const char *topic;      /* thème faible concerné (RECO_WEAK_TOPIC) */
+    const lesson *lesson_to_read; /* cours à lire avant ex (RECO_LESSON) ; pas « lesson » :
+                                     même nom que le type, invalide en C++ */
 } recommendation;
 
 /* lang : limiter à un langage, ou NULL. */

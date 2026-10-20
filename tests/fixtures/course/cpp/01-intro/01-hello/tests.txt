@@ -1,0 +1,23 @@
+=== test: prénom simple
+--- stdin
+Ada
+--- stdout
+Bonjour, Ada !
+
+=== test: autre prénom
+--- stdin
+Linus
+--- stdout
+Bonjour, Linus !
+
+=== test: caractères accentués
+--- stdin
+Éloïse
+--- stdout
+Bonjour, Éloïse !
+
+=== test: espaces autour [hidden]
+--- stdin
+   Grace
+--- stdout
+Bonjour, Grace !

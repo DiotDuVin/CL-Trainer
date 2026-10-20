@@ -35,6 +35,19 @@ static int scan(catalog *cat, const char *dir, int depth)
         return 0; /* un exercice ne contient pas d'autres exercices */
     }
 
+    /* Un chapitre : son cours, puis on continue dans ses sous-dossiers. */
+    path_join(&path, dir, "lesson.md");
+    if (fs_is_file(path.data)) {
+        lesson l;
+        if (lesson_load(dir, &l) == 0) {
+            cat->lessons = grow_array(cat->lessons, &cat->lessons_cap, cat->nlessons + 1,
+                                      sizeof *cat->lessons);
+            cat->lessons[cat->nlessons++] = l;
+        } else {
+            add_error(cat, err_msg());
+        }
+    }
+
     if (depth >= MAX_DEPTH) {
         sb_free(&path);
         return 0;
@@ -98,6 +111,33 @@ static int compare_by_dir(const void *a, const void *b)
     return strcmp(ea->dir, eb->dir);
 }
 
+static int compare_lessons(const void *a, const void *b)
+{
+    const lesson *la = a, *lb = b;
+    return strcmp(la->dir, lb->dir);
+}
+
+/* Rattache chaque exercice au cours du dossier parent le plus proche. */
+static void link_lessons(catalog *cat)
+{
+    for (size_t i = 0; i < cat->len; i++) {
+        exercise *ex = &cat->items[i];
+        const lesson *best = NULL;
+        size_t best_len = 0;
+        for (size_t k = 0; k < cat->nlessons; k++) {
+            const lesson *l = &cat->lessons[k];
+            size_t n = strlen(l->dir);
+            /* "a/b" est parent de "a/b/c" mais pas de "a/bc" : on exige le '/'. */
+            if (strncmp(ex->dir, l->dir, n) == 0 && ex->dir[n] == '/' && n > best_len) {
+                best = l;
+                best_len = n;
+            }
+        }
+        if (best)
+            ex->lesson = xstrdup(best->id);
+    }
+}
+
 int catalog_load(const char *root, catalog *cat)
 {
     memset(cat, 0, sizeof *cat);
@@ -112,6 +152,8 @@ int catalog_load(const char *root, catalog *cat)
     /* readdir ne garantit aucun ordre : on trie pour un affichage stable. */
     if (cat->len > 1)
         qsort(cat->items, cat->len, sizeof *cat->items, compare_by_dir);
+    if (cat->nlessons > 1)
+        qsort(cat->lessons, cat->nlessons, sizeof *cat->lessons, compare_lessons);
 
     strbuf msg = STRBUF_INIT;
 
@@ -133,6 +175,25 @@ int catalog_load(const char *root, catalog *cat)
             }
         }
     }
+
+    /* Cours : id en double (entre eux ou avec un exercice) -> ignoré. */
+    for (size_t i = 0; i < cat->nlessons; i++) {
+        const lesson *l = &cat->lessons[i];
+        int dup = catalog_find(cat, l->id) != NULL;
+        for (size_t j = 0; j < i && !dup; j++)
+            dup = strcmp(cat->lessons[j].id, l->id) == 0;
+        if (dup) {
+            sb_clear(&msg);
+            sb_appendf(&msg, "%s : id « %s » déjà utilisé (cours ignoré)", l->dir, l->id);
+            add_error(cat, msg.data);
+            lesson_free(&cat->lessons[i]);
+            memmove(&cat->lessons[i], &cat->lessons[i + 1],
+                    (cat->nlessons - i - 1) * sizeof *cat->lessons);
+            cat->nlessons--;
+            i--;
+        }
+    }
+    link_lessons(cat);
 
     /* Prérequis inconnus : signalés, mais l'exercice reste utilisable. */
     for (size_t i = 0; i < cat->len; i++) {
@@ -173,8 +234,19 @@ const exercise *catalog_find(const catalog *cat, const char *id)
     return NULL;
 }
 
+const lesson *catalog_find_lesson(const catalog *cat, const char *id)
+{
+    for (size_t i = 0; i < cat->nlessons; i++)
+        if (strcmp(cat->lessons[i].id, id) == 0)
+            return &cat->lessons[i];
+    return NULL;
+}
+
 void catalog_free(catalog *cat)
 {
+    for (size_t i = 0; i < cat->nlessons; i++)
+        lesson_free(&cat->lessons[i]);
+    free(cat->lessons);
     for (size_t i = 0; i < cat->len; i++)
         exercise_free(&cat->items[i]);
     free(cat->items);

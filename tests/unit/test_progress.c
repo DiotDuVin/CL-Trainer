@@ -186,6 +186,24 @@ void test_stats_suite(void)
     recommend_next(&cat, &p, "rust", &r);
     CHECK_INT(r.reason, RECO_ALL_DONE);
 
+    /* Un cours non lu passe avant l'exercice qu'il prépare. */
+    progress_free(&p);
+    cat.lessons = xcalloc(1, sizeof *cat.lessons);
+    cat.nlessons = 1;
+    CHECK(lesson_parse("id: cpp.lesson.a\ntitle: A\nlang: cpp\ntopic: basics\n---\nx\n", "l",
+                       &cat.lessons[0]) == 0);
+    cat.items[0].lesson = xstrdup("cpp.lesson.a");
+    recommend_next(&cat, &p, NULL, &r);
+    CHECK_INT(r.reason, RECO_LESSON);
+    CHECK(r.ex && strcmp(r.ex->id, "cpp.a") == 0);
+    CHECK(r.lesson_to_read && strcmp(r.lesson_to_read->id, "cpp.lesson.a") == 0);
+    progress_apply(&p, "cpp.lesson.a", EVENT_LESSON_READ, 0, T1);
+    recommend_next(&cat, &p, NULL, &r);
+    CHECK_INT(r.reason, RECO_NEXT);
+    stats_compute(&cat, &p, &s);
+    CHECK_INT(s.total, 5); /* les cours ne comptent pas comme exercices */
+    stats_free(&s);
+
     progress_free(&p);
     catalog_free(&cat);
 }
@@ -214,12 +232,28 @@ void test_catalog_suite(void)
     write_exercise(root.data, "03-c", "cpp.c", "cpp.b");     /* cycle b <-> c */
     write_exercise(root.data, "04-dup", "cpp.a", "");        /* id en double */
     write_exercise(root.data, "05-d", "cpp.d", "cpp.absent");
+    /* Un chapitre : 06-chap/lesson.md + un exercice dedans, un autre à côté */
+    strbuf lp = STRBUF_INIT;
+    path_join(&lp, root.data, "06-chap");
+    CHECK(fs_mkdir_p(lp.data) == 0);
+    path_join(&lp, root.data, "06-chap/lesson.md");
+    const char *ltext = "id: cpp.lesson.chap\ntitle: Chap\nlang: cpp\ntopic: t\n---\nCours.\n";
+    CHECK(fs_write_file(lp.data, ltext, strlen(ltext)) == 0);
+    write_exercise(root.data, "06-chap/01-e", "cpp.e", "");
+    write_exercise(root.data, "06-chapitre-voisin", "cpp.f", "");
+    sb_free(&lp);
 
     catalog cat;
     CHECK(catalog_load(root.data, &cat) == 0);
-    CHECK_INT(cat.len, 4);
-    if (cat.len == 4)
+    CHECK_INT(cat.len, 6);
+    if (cat.len == 6)
         CHECK_STR(cat.items[0].id, "cpp.a"); /* trié par dossier */
+    CHECK_INT(cat.nlessons, 1);
+    const exercise *e = catalog_find(&cat, "cpp.e");
+    const exercise *f = catalog_find(&cat, "cpp.f");
+    CHECK(e && e->lesson && strcmp(e->lesson, "cpp.lesson.chap") == 0);
+    CHECK(f && f->lesson == NULL); /* « 06-chapitre-voisin » n'est pas dans « 06-chap » */
+    CHECK(catalog_find_lesson(&cat, "cpp.lesson.chap") != NULL);
     int dup = 0, unknown = 0, cycle = 0;
     for (size_t i = 0; i < cat.errors.len; i++) {
         dup |= strstr(cat.errors.items[i], "déjà utilisé") != NULL;

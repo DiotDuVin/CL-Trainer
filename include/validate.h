@@ -12,6 +12,7 @@
 #define TRAINER_VALIDATE_H
 
 #include "exercise.h"
+#include "lesson.h"
 #include "strvec.h"
 
 #ifdef __cplusplus
@@ -22,6 +23,12 @@ extern "C" {
  * ajout = exercice valide). -1 seulement si la validation n'a pas pu se
  * faire (compilateur absent...). */
 int validate_exercise(const exercise *ex, strvec *problems);
+
+/* Un cours est accepté si chaque exemple (```<lang> example) compile sans
+ * avertissement, s'exécute sans erreur (avec AddressSanitizer/UBSan) et
+ * produit la sortie du bloc ```output qui le suit, s'il y en a un.
+ * Même convention de retour que validate_exercise. */
+int validate_lesson(const lesson *l, strvec *problems);
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,65 @@
+id: cpp.basics.sum
+title: Somme d'une liste
+lang: cpp
+level: 1
+topic: basics
+tags: io, integers, loops
+requires: cpp.basics.hello
+files: main.cpp
+estimated_min: 10
+
+## statement
+L'entrée contient un entier n (0 ≤ n ≤ 100 000), suivi de n entiers x
+(|x| ≤ 10^12), séparés par des espaces ou des retours à la ligne.
+
+Affiche leur somme, suivie d'un retour à la ligne.
+
+Exemple :
+
+    entrée : 3
+             1 2 3
+    sortie : 6
+
+## hints
+`std::cin >> x` saute tous les blancs, retours à la ligne compris : peu
+importe comment les nombres sont répartis sur les lignes.
+---
+Relis les bornes de l'énoncé : 10^12 tient-il dans un `int` ?
+Et la somme de 100 000 valeurs de cet ordre ?
+
+## explanation
+Solution de référence :
+
+    std::size_t n = 0;
+    std::cin >> n;
+    std::int64_t sum = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+        std::int64_t x = 0;
+        std::cin >> x;
+        sum += x;
+    }
+    std::cout << sum << '\n';
+
+Le point clé est le choix du type. Un `int` fait (presque toujours) 32 bits :
+il va jusqu'à 2 147 483 647, environ 2 × 10^9. Une valeur de 10^12 ne tient
+pas dedans. La somme peut atteindre 10^5 × 10^12 = 10^17, qui tient dans un
+entier signé 64 bits (max ≈ 9,2 × 10^18).
+
+- `std::int64_t` (en-tête <cstdint>) garantit exactement 64 bits sur toutes
+  les plateformes. `long long` fait au moins 64 bits ; `long` ne fait que 32
+  bits sous Windows. En entreprise, on préfère les types à taille fixe dès
+  que la taille compte.
+- En C++, le dépassement d'un entier SIGNÉ est un comportement indéfini : le
+  compilateur peut supposer qu'il n'arrive jamais et produire un code
+  surprenant. Il faut donc choisir un type assez grand AVANT de calculer.
+- `std::size_t` est le type naturel d'un nombre d'éléments ou d'un indice.
+
+## common_mistakes
+- Utiliser `int` : le test caché « grandes valeurs » échoue (dépassement).
+- Lire avec `>>` dans un `int` une valeur trop grande : le flux passe en
+  état d'échec, `x` vaut alors la valeur maximale du type, et toutes les
+  lectures suivantes échouent silencieusement.
+- Comparer un `int` signé à un `std::size_t` dans la boucle : -Wall
+  signale « comparison of integer expressions of different signedness ».
+- Stocker toutes les valeurs dans un `std::vector` avant de sommer : inutile
+  ici, une somme se calcule au fil de la lecture (mémoire O(1)).
