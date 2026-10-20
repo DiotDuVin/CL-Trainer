@@ -1,0 +1,36 @@
+=== test: exemple
+--- stdin
+10 20 30 5
+--- stdout
+20 30
+
+=== test: toutes égales
+--- stdin
+12 12 12
+--- stdout
+aucune
+
+=== test: entrée vide [hidden]
+--- stdout
+aucune
+
+=== test: moyenne non entière [hidden]
+--- stdin
+16 16 16 17
+--- stdout
+17
+
+=== test: négatifs et lignes [hidden]
+--- stdin
+-5
+-10
+0
+3
+--- stdout
+0 3
+
+=== test: moyenne négative non entière [hidden]
+--- stdin
+-1 -2 -3 -4
+--- stdout
+-1 -2

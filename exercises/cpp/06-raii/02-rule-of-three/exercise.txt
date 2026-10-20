@@ -1,0 +1,76 @@
+id: cpp.raii.rule-of-three
+title: La règle de trois
+lang: cpp
+level: 3
+topic: raii
+tags: rule-of-three, copy, new, delete
+requires: cpp.raii.scope-trace
+files: main.cpp
+sanitize: yes
+estimated_min: 30
+
+## statement
+La classe `Buffer` possède un tableau alloué avec `new[]` et le libère dans
+son destructeur. Mais elle ne gère pas la copie : copier un `Buffer` copie le
+pointeur, et deux objets libèrent alors le même tableau.
+
+Lance d'abord `trainer check` sans rien changer : cet exercice est compilé
+avec **AddressSanitizer**, qui détecte la double libération. Lis son rapport.
+
+Ensuite, applique la **règle de trois** : ajoute un constructeur de copie et un
+opérateur d'affectation par copie qui font une **copie profonde** (un nouveau
+tableau, avec les mêmes valeurs). Ne modifie pas `main`.
+
+Le programme lit `n` puis `n` entiers, et fait des copies, des affectations
+(dont une affectation d'un objet à lui-même) et des modifications. Chaque
+`Buffer` doit rester indépendant des autres.
+
+## hints
+Constructeur de copie :
+`Buffer(const Buffer &other) : size_(other.size_), data_(new int[other.size_])`
+puis copie des éléments (une boucle, ou `std::copy` de <algorithm>).
+---
+Affectation : l'idiome copy-and-swap du cours. Prends le paramètre PAR VALEUR
+(`Buffer &operator=(Buffer other)`) : il est déjà copié. Il reste à échanger
+`size_` et `data_` avec `std::swap`, puis à renvoyer `*this`.
+---
+Si tu écris l'affectation « à la main » (libérer puis copier), attention à
+l'auto-affectation `a = a` : libérer d'abord détruit les données que l'on
+s'apprêtait à copier.
+
+## explanation
+Solution de référence :
+
+    Buffer(const Buffer &other) : size_(other.size_), data_(new int[other.size_]) {
+        std::copy(other.data_, other.data_ + size_, data_);
+    }
+
+    Buffer &operator=(Buffer other) {   // par valeur : la copie est déjà faite
+        std::swap(size_, other.size_);
+        std::swap(data_, other.data_);
+        return *this;
+    }                                   // other emporte l'ancien tableau
+
+Points importants :
+
+- **La copie par défaut est une copie superficielle** : elle copie les membres
+  un par un, donc le pointeur et pas le tableau. Avec un destructeur qui libère,
+  c'est une double libération garantie. D'où la **règle de trois** :
+  destructeur, constructeur de copie et affectation vont ensemble.
+- **Copy-and-swap** : le passage par valeur appelle le constructeur de copie ;
+  l'échange donne la copie à `*this` et l'ancien tableau à `other`, que son
+  destructeur libère. Trois avantages : pas de code de copie dupliqué,
+  l'auto-affectation est correcte, et si l'allocation échoue (exception),
+  `*this` n'a pas été modifié.
+- **La vraie solution, en pratique** : remplacer `int *data_` par un
+  `std::vector<int>` (règle de zéro). Les cinq opérations générées par défaut
+  deviennent alors correctes, et cet exercice n'aurait plus lieu d'être.
+  On n'écrit la règle de trois que pour envelopper une ressource brute.
+
+## common_mistakes
+- Écrire seulement le constructeur de copie : `c = a` utilise l'affectation par
+  défaut, qui copie encore le pointeur (et fuit l'ancien tableau de `c`).
+- Affectation « libérer puis copier » sans tester `this == &other` : `a = a`
+  libère le tableau avant de le relire (use-after-free, détecté par ASan).
+- `delete` au lieu de `delete[]` pour un tableau alloué par `new[]`.
+- Oublier `return *this;` : l'affectation doit renvoyer l'objet (pour `a = b = c`).

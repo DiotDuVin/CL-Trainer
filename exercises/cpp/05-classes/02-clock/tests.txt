@@ -1,0 +1,33 @@
+=== test: exemple
+--- stdin
+23:50 20
+08:00 -90
+--- stdout
+00:10
+06:30
+
+=== test: sans décalage
+--- stdin
+07:05 0
+12:00 0
+--- stdout
+07:05
+12:00
+
+=== test: grands décalages [hidden]
+--- stdin
+00:00 1440
+00:00 -1
+10:30 3000
+00:15 -2895
+--- stdout
+00:00
+23:59
+12:30
+00:00
+
+=== test: minuit pile [hidden]
+--- stdin
+23:59 1
+--- stdout
+00:00

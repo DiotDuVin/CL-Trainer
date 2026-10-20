@@ -1,0 +1,82 @@
+id: cpp.raii.scope-trace
+title: Tracer les portées avec un destructeur
+lang: cpp
+level: 2
+topic: raii
+tags: destructor, raii, static
+requires: cpp.classes.account
+files: main.cpp
+estimated_min: 15
+
+## statement
+Complète la classe `Scope` pour qu'elle trace l'entrée et la sortie des
+portées, avec une indentation de deux espaces par niveau d'imbrication :
+
+- le **constructeur** affiche `> nom`, puis augmente la profondeur ;
+- le **destructeur** diminue la profondeur, puis affiche `< nom`.
+
+La fonction `visit` (fournie, à ne pas modifier) s'appelle récursivement et
+s'arrête plus tôt quand `n == stop`. Pour l'entrée `2 -1` :
+
+    > visit 2
+      > visit 1
+        > visit 0
+        < visit 0
+      < visit 1
+    < visit 2
+
+Chaque ligne de l'entrée contient `n stop` et donne une trace complète.
+
+## hints
+La profondeur est partagée par tous les objets `Scope` : c'est un membre
+`static`, déclaré dans la classe (`static int depth_;`) et défini une fois en
+dehors (`int Scope::depth_ = 0;`). Depuis C++17, on peut aussi écrire
+`static inline int depth_ = 0;` directement dans la classe.
+---
+L'indentation : `std::string(2 * depth_, ' ')` crée une chaîne de
+2 × depth_ espaces.
+---
+Remarque que tu n'as écrit AUCUN code dans `visit` pour gérer le `return`
+anticipé : le destructeur est appelé sur tous les chemins de sortie.
+
+## explanation
+Solution de référence :
+
+    class Scope {
+    public:
+        explicit Scope(const std::string &name) : name_(name) {
+            std::cout << std::string(2 * depth_, ' ') << "> " << name_ << '\n';
+            ++depth_;
+        }
+        ~Scope() {
+            --depth_;
+            std::cout << std::string(2 * depth_, ' ') << "< " << name_ << '\n';
+        }
+    private:
+        std::string name_;
+        static inline int depth_ = 0; // partagé par tous les Scope
+    };
+
+Points importants :
+
+- Le destructeur est appelé **automatiquement**, à la fin de la portée et sur
+  **tous** les chemins de sortie : avec `stop`, `visit` fait un `return`
+  anticipé, et la trace reste correctement fermée. En C, il aurait fallu
+  penser à « fermer » avant chaque `return`.
+- L'ordre de destruction est l'inverse de l'ordre de construction : la trace
+  forme une pile parfaite.
+- Le constructeur incrémente APRÈS l'affichage, le destructeur décrémente
+  AVANT : les deux lignes d'une même portée sont ainsi au même niveau.
+- `static` : un seul `depth_` pour toute la classe, et non un par objet.
+- Cette classe est un vrai outil : un « traceur de portées » comme celui-ci
+  sert à profiler ou à déboguer (en mesurant le temps entre le constructeur et
+  le destructeur, par exemple).
+
+## common_mistakes
+- Faire de `depth_` un membre normal : chaque objet aurait sa propre
+  profondeur, toujours 0.
+- Décrémenter après l'affichage dans le destructeur : les lignes `<` sont
+  décalées d'un niveau.
+- Écrire `Scope("visit");` sans nom de variable : l'objet temporaire est
+  détruit immédiatement, à la fin de l'instruction. Le code fourni nomme bien
+  la variable (`Scope s(...)`).

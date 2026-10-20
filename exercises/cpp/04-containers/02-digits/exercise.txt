@@ -1,0 +1,73 @@
+id: cpp.containers.digits
+title: Compter les chiffres avec std::array
+lang: cpp
+level: 2
+topic: containers
+tags: array, characters
+requires: cpp.containers.above-average
+files: main.cpp
+estimated_min: 15
+
+## statement
+Lis toute l'entrée caractère par caractère et compte combien de fois apparaît
+chaque chiffre de 0 à 9. Affiche une ligne `chiffre : nombre` pour chaque
+chiffre présent au moins une fois, du plus petit au plus grand. Si l'entrée ne
+contient aucun chiffre, affiche `aucun chiffre`.
+
+    entrée : 2024, c'est l'année 2024 !
+    sortie : 0 : 2
+             2 : 4
+             4 : 2
+
+Utilise un `std::array<int, 10>` pour les compteurs.
+
+## hints
+`char c; while (std::cin.get(c)) { ... }` lit chaque caractère, espaces et
+retours à la ligne compris (contrairement à `std::cin >> c`).
+---
+Un chiffre vérifie `c >= '0' && c <= '9'`, et sa valeur est `c - '0'` (les
+codes des chiffres se suivent, comme en C). C'est l'indice dans le tableau.
+---
+`std::array<int, 10> counts{};` : les accolades vides mettent tout à zéro.
+Sans elles, les valeurs de départ sont indéterminées, comme un tableau local en C.
+
+## explanation
+Solution de référence :
+
+    std::array<int, 10> counts{};
+    char c = 0;
+    while (std::cin.get(c))
+        if (c >= '0' && c <= '9')
+            ++counts[static_cast<std::size_t>(c - '0')];
+
+    bool any = false;
+    for (std::size_t d = 0; d < counts.size(); ++d) {
+        if (counts[d] > 0) {
+            std::cout << d << " : " << counts[d] << '\n';
+            any = true;
+        }
+    }
+    if (!any)
+        std::cout << "aucun chiffre\n";
+
+Points importants :
+
+- `std::array` est le bon choix : la taille (10) est connue à la compilation et
+  ne change jamais. Aucune allocation, aussi rapide qu'un tableau C, mais avec
+  `size()` et la possibilité d'être copié ou comparé.
+- `counts{}` initialise à zéro. `std::array<int, 10> counts;` (sans `{}`)
+  laisse des valeurs indéterminées : lire l'une d'elles est un comportement
+  indéfini.
+- `std::cin.get(c)` lit un caractère brut ; `std::cin >> c` sauterait les blancs.
+- La boucle d'affichage utilise un indice, car on a besoin de `d` lui-même :
+  c'est un bon cas pour la boucle classique plutôt que le for sur intervalle.
+- `c - '0'` donne un `int` ; le `static_cast<std::size_t>` rend la conversion
+  vers un indice explicite.
+
+## common_mistakes
+- Oublier `{}` : compteurs non initialisés.
+- Lire avec `std::cin >> c` : ici le résultat serait le même (les blancs ne
+  sont pas des chiffres), mais `>>` saute les espaces et retours à la ligne.
+  Dès qu'il faut traiter TOUS les caractères, c'est `std::cin.get(c)`.
+- Utiliser `std::isdigit(c)` sans conversion en `unsigned char`.
+- Afficher les chiffres absents (`5 : 0`).

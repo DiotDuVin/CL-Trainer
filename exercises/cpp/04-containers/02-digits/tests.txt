@@ -1,0 +1,33 @@
+=== test: exemple
+--- stdin
+2024, c'est l'année 2024 !
+--- stdout
+0 : 2
+2 : 4
+4 : 2
+
+=== test: tous les chiffres
+--- stdin
+0123456789
+9
+--- stdout
+0 : 1
+1 : 1
+2 : 1
+3 : 1
+4 : 1
+5 : 1
+6 : 1
+7 : 1
+8 : 1
+9 : 2
+
+=== test: aucun chiffre [hidden]
+--- stdin
+Pas de chiffre ici.
+--- stdout
+aucun chiffre
+
+=== test: entrée vide [hidden]
+--- stdout
+aucun chiffre

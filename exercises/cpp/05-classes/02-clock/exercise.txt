@@ -1,0 +1,86 @@
+id: cpp.classes.clock
+title: Une heure toujours valide
+lang: cpp
+level: 3
+topic: classes
+tags: class, invariant, modulo, operator
+requires: cpp.classes.account
+files: main.cpp
+estimated_min: 25
+
+## statement
+Complète la classe `Clock`, qui représente une heure de la journée (de 00:00
+à 23:59). Son invariant : l'heure est **toujours** valide, même après avoir
+ajouté ou retiré des minutes.
+
+- `Clock(int hours, int minutes)` : construit l'heure, en normalisant
+  (`Clock(25, 70)` vaut 02:10, `Clock(0, -30)` vaut 23:30) ;
+- `void add_minutes(int minutes)` : avance (ou recule si négatif) ;
+- `int hours() const`, `int minutes() const` ;
+- `operator<<` : affiche `HH:MM` avec deux chiffres.
+
+Chaque ligne de l'entrée contient une heure `HH:MM` et un décalage en minutes ;
+le programme affiche l'heure obtenue :
+
+    entrée : 23:50 20        sortie : 00:10
+             08:00 -90                06:30
+
+## hints
+Le plus simple est de stocker un seul membre : le nombre de minutes depuis
+minuit, entre 0 et 1439. Les heures et les minutes s'en déduisent.
+---
+Attention : en C et en C++, `-30 % 1440` vaut -30, pas 1410 ! Le signe du
+reste suit celui du dividende. Pour un modulo toujours positif :
+`((x % n) + n) % n`.
+---
+Pour afficher sur deux chiffres : `std::setw(2)` et `std::setfill('0')`
+(en-tête <iomanip>), comme `%02d` en C.
+
+## explanation
+Solution de référence :
+
+    class Clock {
+    public:
+        Clock(int hours, int minutes) : total_(normalize(hours * 60 + minutes)) {}
+
+        void add_minutes(int minutes) { total_ = normalize(total_ + minutes); }
+        int hours() const { return total_ / 60; }
+        int minutes() const { return total_ % 60; }
+
+    private:
+        static constexpr int kDay = 24 * 60;
+        static int normalize(int m) { return ((m % kDay) + kDay) % kDay; }
+        int total_; // invariant : 0 <= total_ < kDay
+    };
+
+    std::ostream &operator<<(std::ostream &out, const Clock &c) {
+        const char fill = out.fill('0');
+        out << std::setw(2) << c.hours() << ':' << std::setw(2) << c.minutes();
+        out.fill(fill);
+        return out;
+    }
+
+Points importants :
+
+- **Choisir la représentation interne** est la vraie décision de conception.
+  Stocker heures et minutes séparément oblige à gérer les retenues partout ;
+  un seul entier « minutes depuis minuit » rend chaque méthode d'une ligne.
+  L'interface publique (`hours()`, `minutes()`) ne change pas : c'est tout
+  l'intérêt de l'encapsulation, on peut changer l'intérieur sans toucher aux
+  utilisateurs de la classe.
+- **Le piège du modulo négatif** : `%` peut renvoyer un nombre négatif en C et
+  en C++. `((m % n) + n) % n` ramène toujours entre 0 et n - 1.
+- `normalize` est une méthode **`static`** : elle n'utilise aucun membre,
+  donc elle n'a pas besoin d'objet. `kDay` est une constante de classe
+  (`static constexpr`).
+- `operator<<` restaure le caractère de remplissage du flux : changer l'état
+  de `std::cout` sans le remettre en place surprendrait le code qui l'utilise
+  ensuite. `setw` ne s'applique qu'à la sortie suivante, mais `fill` reste.
+
+## common_mistakes
+- Normaliser seulement dans le constructeur, et oublier `add_minutes`.
+- `m % 1440` seul : faux pour les décalages négatifs (on afficherait « -1:-30 »).
+- Afficher `8:5` au lieu de `08:05` : il faut `setw(2)` devant CHAQUE nombre
+  (son effet ne dure que pour une seule sortie).
+- Garder des heures > 23 en mémoire et ne corriger qu'à l'affichage :
+  l'invariant n'est plus garanti, et `hours()` renvoie des valeurs fausses.
