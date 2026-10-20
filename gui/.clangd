@@ -1,0 +1,4 @@
+# Configuration de clangd pour le code Qt : utiliser les options de
+# compilation générées par CMake (make gui les produit dans build/gui).
+CompileFlags:
+  CompilationDatabase: ../build/gui

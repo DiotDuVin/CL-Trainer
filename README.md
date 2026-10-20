@@ -7,9 +7,11 @@ correction automatique et des explications.
 Le moteur est écrit en C11 (POSIX). Il compile et exécute votre code avec les vrais
 outils (`g++`, `git`, `dotnet`, `cargo`), puis compare la sortie aux tests.
 
-> État : **étape 3**. Moteur C++ complet avec suivi de progression, indices,
-> recommandations et validation des exercices. À venir : application graphique (Qt),
-> une trentaine d'exercices C++, puis Git, C# et Rust.
+> État : **étape 4**. Moteur C++ complet (progression, indices, recommandations,
+> validation), utilisable en ligne de commande **ou avec une application graphique**.
+> À venir : une trentaine d'exercices C++, puis Git, C# et Rust.
+
+![Application graphique : résultats des tests](docs/images/gui-echec.png)
 
 ## Installation
 
@@ -32,7 +34,26 @@ Installation globale (facultative) :
 make install PREFIX=$HOME/.local    # ~/.local/bin doit être dans votre PATH
 ```
 
-## Utilisation
+## Application graphique
+
+```sh
+sudo pacman -S --needed qt6-base cmake      # Debian/Ubuntu : qt6-base-dev cmake libgl-dev
+make && make gui                            # produit ./trainer et ./trainer-gui
+./trainer-gui
+```
+
+- **À gauche** : le catalogue avec l'état de chaque exercice, la progression et les
+  points faibles.
+- **À droite** : l'énoncé, les résultats test par test (entrée, différence, erreurs) et la
+  correction.
+- **Raccourcis** : « Suivant » (Ctrl+N) choisit l'exercice recommandé ; « Vérifier »
+  (Ctrl+Entrée) compile et teste.
+- Le code s'écrit dans VS Code (bouton « Ouvrir dans VS Code »). Une vérification lancée
+  depuis VS Code (Ctrl+Maj+B) ou depuis le terminal met la fenêtre à jour automatiquement.
+
+Installation dans le menu des applications : `make install install-gui PREFIX=$HOME/.local`.
+
+## Utilisation en ligne de commande
 
 ```sh
 trainer next                       # que faire maintenant ?
@@ -71,8 +92,8 @@ Ouvrez le **dossier de l'exercice** (pas tout le workspace), par exemple avec
 ## Développement
 
 Le moteur est une bibliothèque (`libtrainer.a`, dossiers `src/core` et `src/util`, en-tête
-`include/trainer.h`) sans aucun affichage. Le programme `trainer` (`src/cli`) n'en est qu'une
-interface ; l'application graphique en sera une autre.
+`include/trainer.h`) sans aucun affichage. Le programme `trainer` (`src/cli`, en C) et
+l'application `trainer-gui` (`gui/`, en C++ avec Qt 6) n'en sont que deux interfaces.
 
 ```sh
 make test        # tests unitaires + bout en bout + en-têtes compilables en C++20
@@ -80,6 +101,7 @@ make test        # tests unitaires + bout en bout + en-têtes compilables en C++
 make asan        # mêmes tests, moteur compilé avec AddressSanitizer + UBSan
 make valgrind    # tests sous valgrind (aucune fuite tolérée)
 make CC=clang    # vérifier avec un second compilateur
+make gui-test    # application graphique : parcours d'élève simulé avec QTest
 ```
 
 La CI GitHub (`.github/workflows/ci.yml`) lance tout cela à chaque push et pull request,

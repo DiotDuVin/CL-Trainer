@@ -1,6 +1,7 @@
 # Produits de compilation
 /build/
 /trainer
+/trainer-gui
 *.o
 *.d
 
