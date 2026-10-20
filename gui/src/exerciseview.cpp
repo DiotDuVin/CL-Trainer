@@ -20,6 +20,7 @@
 
 #include "engine.h"
 #include "format.h"
+#include "theme.h"
 
 namespace {
 
@@ -35,6 +36,23 @@ QPushButton *makeButton(const QString &text, const QString &name, QWidget *paren
     return b;
 }
 
+// Badge : petite étiquette arrondie, mise en forme par la feuille de style
+// du thème (objectName « chip », propriété « kind » pour la couleur).
+QLabel *makeChip(QWidget *parent)
+{
+    auto *chip = new QLabel(parent);
+    chip->setObjectName(QStringLiteral("chip"));
+    return chip;
+}
+
+void setChipKind(QLabel *chip, const char *kind)
+{
+    if (chip->property("kind").toString() == QLatin1String(kind))
+        return;
+    chip->setProperty("kind", QString::fromLatin1(kind));
+    theme::repolish(chip);
+}
+
 } // namespace
 
 ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
@@ -48,15 +66,22 @@ ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
     // lui : c'est l'arbre de propriété de Qt (pas de delete à écrire).
     title_ = new QLabel(this);
     QFont big = title_->font();
-    big.setPointSizeF(big.pointSizeF() * 1.5);
+    big.setPointSizeF(big.pointSizeF() * 1.6);
     big.setBold(true);
     title_->setFont(big);
     title_->setObjectName(QStringLiteral("title"));
-    meta_ = new QLabel(this);
-    meta_->setEnabled(false); // texte grisé, couleur du thème
+    langChip_ = makeChip(this);
+    levelChip_ = makeChip(this);
+    topicChip_ = makeChip(this);
+    timeChip_ = makeChip(this);
+    statusChip_ = makeChip(this);
+    attemptsChip_ = makeChip(this);
+    idLabel_ = new QLabel(this);
+    idLabel_->setObjectName(QStringLiteral("muted"));
+    idLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse); // id copiable
     banner_ = new QLabel(this);
+    banner_->setObjectName(QStringLiteral("banner"));
     banner_->setWordWrap(true);
-    banner_->setStyleSheet(QStringLiteral("color:#d08a10"));
     lessonButton_ = makeButton(tr("📖 Lire le cours"), QStringLiteral("lessonButton"), this);
 
     startButton_ = makeButton(tr("Commencer"), QStringLiteral("startButton"), this);
@@ -66,6 +91,7 @@ ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
     solutionButton_ = makeButton(tr("Solution"), QStringLiteral("solutionButton"), this);
     checkButton_ = makeButton(tr("Vérifier"), QStringLiteral("checkButton"), this);
     checkButton_->setDefault(true);
+    checkButton_->setProperty("primary", true); // bouton principal : mis en avant
     checkButton_->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
     checkButton_->setToolTip(tr("Compiler et lancer les tests (Ctrl+Entrée)"));
 
@@ -84,12 +110,16 @@ ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
 
     tests_ = new QListWidget(this);
     tests_->setObjectName(QStringLiteral("tests"));
+    tests_->setMinimumWidth(220);
+    tests_->setWordWrap(true); // noms longs : retour à la ligne plutôt que défilement
+    tests_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     details_ = new QTextBrowser(this);
     details_->setObjectName(QStringLiteral("details"));
     auto *results = new QSplitter(Qt::Horizontal, this);
     results->addWidget(tests_);
     results->addWidget(details_);
     results->setStretchFactor(1, 2);
+    results->setHandleWidth(8);
 
     correction_ = new QTextBrowser(this);
     correction_->setObjectName(QStringLiteral("correction"));
@@ -100,13 +130,22 @@ ExerciseView::ExerciseView(Engine &engine, QWidget *parent)
     tabs_->addTab(results, tr("Résultats"));
     tabs_->addTab(correction_, tr("Correction"));
 
+    auto *chips = new QHBoxLayout;
+    chips->setSpacing(6);
+    for (QLabel *chip : { langChip_, levelChip_, topicChip_, timeChip_, statusChip_, attemptsChip_ })
+        chips->addWidget(chip);
+    chips->addStretch();
+    chips->addWidget(idLabel_);
+
     auto *bannerRow = new QHBoxLayout;
     bannerRow->addWidget(banner_, 1);
     bannerRow->addWidget(lessonButton_);
 
     auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(14, 10, 14, 10);
+    layout->setSpacing(10);
     layout->addWidget(title_);
-    layout->addWidget(meta_);
+    layout->addLayout(chips);
     layout->addLayout(bannerRow);
     layout->addLayout(buttons);
     layout->addWidget(tabs_, 1);
@@ -168,7 +207,9 @@ void ExerciseView::refresh()
         b->setEnabled(ex != nullptr);
     if (!ex) {
         title_->setText(tr("Choisis un exercice"));
-        meta_->setText(tr("Dans la liste de gauche, ou avec « Suivant » dans la barre d'outils."));
+        for (QLabel *chip : { langChip_, levelChip_, topicChip_, timeChip_, statusChip_, attemptsChip_ })
+            chip->hide();
+        idLabel_->setText(tr("Dans la liste de gauche, ou avec « Suivant » dans la barre d'outils."));
         banner_->hide();
         lessonButton_->hide();
         statement_->clear();
@@ -182,16 +223,20 @@ void ExerciseView::refresh()
     static const char *const statusText[] = { "nouveau", "commencé", "à reprendre", "réussi" };
 
     title_->setText(qs(ex->title));
-    QString meta = QStringLiteral("%1 · %2 · niveau %3 · thème %4")
-                       .arg(qs(ex->id), format::langName(ex->lang), format::levelStars(ex->level),
-                            qs(ex->topic));
-    if (ex->estimated_min > 0)
-        meta += tr(" · ~%1 min").arg(ex->estimated_min);
-    meta += QStringLiteral(" · ") + format::statusSymbol(st, true) + QLatin1Char(' ') +
-            tr(statusText[st]);
-    if (e && e->attempts > 0)
-        meta += tr(" (%n vérification(s))", nullptr, e->attempts);
-    meta_->setText(meta);
+    langChip_->setText(format::langName(ex->lang));
+    levelChip_->setText(format::levelStars(ex->level));
+    levelChip_->setToolTip(tr("Niveau %1 sur 5").arg(ex->level));
+    topicChip_->setText(tr("thème : %1").arg(qs(ex->topic)));
+    timeChip_->setText(tr("~%1 min").arg(ex->estimated_min));
+    timeChip_->setVisible(ex->estimated_min > 0);
+    statusChip_->setText(format::statusSymbol(st, true) + QLatin1Char(' ') + tr(statusText[st]));
+    static const char *const statusKind[] = { "", "warning", "failure", "success" };
+    setChipKind(statusChip_, statusKind[st]);
+    attemptsChip_->setText(tr("%n vérification(s)", nullptr, e ? e->attempts : 0));
+    attemptsChip_->setVisible(e && e->attempts > 0);
+    for (QLabel *chip : { langChip_, levelChip_, topicChip_, statusChip_ })
+        chip->show();
+    idLabel_->setText(qs(ex->id));
 
     // Bandeau : cours pas encore lu, prérequis pas encore réussis.
     QStringList notes;
@@ -329,35 +374,7 @@ void ExerciseView::onCheckFinished()
 
     if (qs(r->ex.id) == id_) {
         last_ = r;
-        auto addRow = [this](const QString &text, int row, const QColor &color) {
-            auto *item = new QListWidgetItem(text, tests_);
-            item->setData(kRowRole, row);
-            item->setForeground(color);
-        };
-        const QColor red(0xd0, 0x3a, 0x3a), green(0x2e, 0x9e, 0x44), orange(0xd0, 0x8a, 0x10);
-        int firstFailure = -1;
-        if (rep.status == CHECK_BUILD_FAILED) {
-            addRow(tr("✗ Compilation"), kBuildRow, red);
-            firstFailure = 0;
-        } else {
-            if (rep.build_log[0])
-                addRow(tr("⚠ Avertissements"), kWarningRow, orange);
-            for (size_t i = 0; i < rep.tests.len; i++) {
-                const test_outcome &o = rep.outcomes[i];
-                QString name = qs(rep.tests.items[i].name);
-                if (rep.tests.items[i].hidden)
-                    name += tr(" (caché)");
-                if (o.result == VERDICT_PASS) {
-                    addRow(QStringLiteral("✓ ") + name, static_cast<int>(i), green);
-                } else {
-                    addRow(QStringLiteral("✗ %1 — %2").arg(name, qs(verdict_label(o.result))),
-                           static_cast<int>(i), red);
-                    if (firstFailure < 0)
-                        firstFailure = tests_->count() - 1;
-                }
-            }
-        }
-        tests_->setCurrentRow(firstFailure >= 0 ? firstFailure : 0);
+        showResults();
         if (passed)
             emit message(tr("Bravo, tous les tests passent (%1/%2) ! La correction est "
                             "disponible.").arg(rep.passed).arg(rep.tests.len));
@@ -368,6 +385,52 @@ void ExerciseView::onCheckFinished()
     }
     refresh();
     emit checkFinished(passed);
+}
+
+void ExerciseView::showResults()
+{
+    clearResults();
+    if (!last_ || !last_->ok)
+        return;
+    const check_report &rep = last_->report;
+    auto addRow = [this](const QString &text, int row, theme::Role role) {
+        auto *item = new QListWidgetItem(text, tests_);
+        item->setData(kRowRole, row);
+        item->setForeground(theme::color(role));
+    };
+    int firstFailure = -1;
+    if (rep.status == CHECK_BUILD_FAILED) {
+        addRow(tr("✗ Compilation"), kBuildRow, theme::Role::Failure);
+        firstFailure = 0;
+    } else {
+        if (rep.build_log[0])
+            addRow(tr("⚠ Avertissements"), kWarningRow, theme::Role::Warning);
+        for (size_t i = 0; i < rep.tests.len; i++) {
+            const test_outcome &o = rep.outcomes[i];
+            QString name = qs(rep.tests.items[i].name);
+            if (rep.tests.items[i].hidden)
+                name += tr(" (caché)");
+            if (o.result == VERDICT_PASS) {
+                addRow(QStringLiteral("✓ ") + name, static_cast<int>(i), theme::Role::Success);
+            } else {
+                addRow(QStringLiteral("✗ %1 — %2").arg(name, qs(verdict_label(o.result))),
+                       static_cast<int>(i), theme::Role::Failure);
+                if (firstFailure < 0)
+                    firstFailure = tests_->count() - 1;
+            }
+        }
+    }
+    tests_->setCurrentRow(firstFailure >= 0 ? firstFailure : 0);
+}
+
+void ExerciseView::restyle()
+{
+    const int row = tests_->currentRow();
+    refresh();
+    if (last_) {
+        showResults();
+        tests_->setCurrentRow(row);
+    }
 }
 
 void ExerciseView::onTestSelected(int row)

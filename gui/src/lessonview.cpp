@@ -13,37 +13,52 @@
 
 #include "engine.h"
 #include "format.h"
+#include "theme.h"
 
 LessonView::LessonView(Engine &engine, QWidget *parent) : QWidget(parent), engine_(engine)
 {
     title_ = new QLabel(this);
     QFont big = title_->font();
-    big.setPointSizeF(big.pointSizeF() * 1.5);
+    big.setPointSizeF(big.pointSizeF() * 1.6);
     big.setBold(true);
     title_->setFont(big);
     title_->setObjectName(QStringLiteral("lessonTitle"));
-    meta_ = new QLabel(this);
-    meta_->setEnabled(false);
+    title_->setWordWrap(true);
+    langChip_ = new QLabel(this);
+    timeChip_ = new QLabel(this);
+    readChip_ = new QLabel(this);
+    for (QLabel *chip : { langChip_, timeChip_, readChip_ })
+        chip->setObjectName(QStringLiteral("chip"));
 
     readButton_ = new QPushButton(tr("Marquer comme lu"), this);
     readButton_->setObjectName(QStringLiteral("markReadButton"));
     practiceButton_ = new QPushButton(tr("Passer aux exercices"), this);
     practiceButton_->setObjectName(QStringLiteral("practiceButton"));
     practiceButton_->setDefault(true);
+    practiceButton_->setProperty("primary", true);
 
-    auto *buttons = new QHBoxLayout;
-    buttons->addStretch();
-    buttons->addWidget(readButton_);
-    buttons->addWidget(practiceButton_);
+    // Ligne sous le titre : badges à gauche, actions à droite.
+    auto *row = new QHBoxLayout;
+    row->setSpacing(6);
+    for (QLabel *chip : { langChip_, timeChip_, readChip_ })
+        row->addWidget(chip);
+    row->addStretch();
+    row->addWidget(readButton_);
+    row->addWidget(practiceButton_);
 
     body_ = new QTextBrowser(this);
     body_->setObjectName(QStringLiteral("lessonBody"));
     body_->setOpenExternalLinks(true);
+    // Texte de cours : un peu plus grand que l'interface, pour la lecture.
+    QFont reading = body_->font();
+    reading.setPointSizeF(reading.pointSizeF() * 1.08);
+    body_->setFont(reading);
 
     auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(14, 10, 14, 10);
+    layout->setSpacing(10);
     layout->addWidget(title_);
-    layout->addWidget(meta_);
-    layout->addLayout(buttons);
+    layout->addLayout(row);
     layout->addWidget(body_, 1);
 
     connect(readButton_, &QPushButton::clicked, this, &LessonView::onMarkRead);
@@ -80,19 +95,21 @@ void LessonView::refresh()
     const lesson *l = engine_.findLesson(id_);
     readButton_->setEnabled(l != nullptr);
     practiceButton_->setEnabled(l != nullptr);
+    for (QLabel *chip : { langChip_, timeChip_, readChip_ })
+        chip->setVisible(l != nullptr);
     if (!l) {
         title_->clear();
-        meta_->clear();
         body_->clear();
         return;
     }
     const bool read = engine_.lessonRead(*l);
     title_->setText(QStringLiteral("📖 ") + qs(l->title));
-    QString meta = tr("Cours · %1").arg(format::langName(l->lang));
-    if (l->estimated_min > 0)
-        meta += tr(" · ~%1 min de lecture").arg(l->estimated_min);
-    meta += read ? tr(" · ✓ lu") : tr(" · pas encore lu");
-    meta_->setText(meta);
+    langChip_->setText(tr("Cours %1").arg(format::langName(l->lang)));
+    timeChip_->setText(tr("~%1 min de lecture").arg(l->estimated_min));
+    timeChip_->setVisible(l->estimated_min > 0);
+    readChip_->setText(read ? tr("✓ lu") : tr("pas encore lu"));
+    readChip_->setProperty("kind", read ? QStringLiteral("success") : QString());
+    theme::repolish(readChip_);
     readButton_->setText(read ? tr("Lu ✓") : tr("Marquer comme lu"));
     readButton_->setEnabled(!read);
     practiceButton_->setEnabled(!firstExerciseToDo().isEmpty());

@@ -7,6 +7,7 @@
 #   make release      binaire optimisé dans build/release/
 #   make gui          application graphique Qt (./trainer-gui), via CMake
 #   make gui-test     test de l'application (parcours d'élève simulé)
+#   make gui-screenshots  captures d'écran de docs/images
 #   make install      installe dans $(PREFIX) (défaut : /usr/local)
 #   make install-gui  installe aussi l'application graphique et son menu
 #                     ex. : make install PREFIX=$HOME/.local
@@ -73,7 +74,7 @@ VALGRIND := valgrind --quiet --leak-check=full --error-exitcode=99 \
             --child-silent-after-fork=yes
 
 .PHONY: all lib test unit e2e cxx-headers asan valgrind release install uninstall clean \
-        gui gui-test install-gui
+        gui gui-test gui-screenshots install-gui
 
 all: trainer
 
@@ -146,6 +147,11 @@ gui:
 
 gui-test: gui
 	ctest --test-dir $(GUI_BUILD) --output-on-failure
+
+# Régénère les captures de docs/images (thèmes clair et sombre, vrai catalogue).
+gui-screenshots: gui
+	QT_QPA_PLATFORM=offscreen TRAINER_EXERCISES=$(CURDIR)/exercises \
+	    TRAINER_SCREENSHOTS=$(CURDIR)/docs/images $(GUI_BUILD)/gui-screenshots
 
 install-gui:
 	cmake -S gui -B build/gui-release -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX)

@@ -33,6 +33,7 @@ public:
 
 public slots:
     void refresh(); // relit la progression et met à jour boutons et énoncé
+    void restyle(); // après un changement de thème : redessine aussi les résultats
 
 signals:
     void progressChanged();            // la progression a été modifiée ici
@@ -53,12 +54,20 @@ private slots:
 private:
     void showError(const QString &text);
     void clearResults();
+    void showResults(); // remplit la liste des tests à partir de last_
 
     Engine &engine_;   // référence : la vue ne possède pas l'Engine
     QString id_;       // exercice affiché (jamais de pointeur : voir engine.h)
 
     QLabel *title_;
-    QLabel *meta_;
+    // Badges sous le titre : langage, niveau, thème, durée, statut, essais.
+    QLabel *langChip_;
+    QLabel *levelChip_;
+    QLabel *topicChip_;
+    QLabel *timeChip_;
+    QLabel *statusChip_;
+    QLabel *attemptsChip_;
+    QLabel *idLabel_;
     QLabel *banner_;
     QTabWidget *tabs_;
     QTextBrowser *statement_;

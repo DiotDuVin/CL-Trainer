@@ -165,6 +165,10 @@ Engine::Summary Engine::summary() const
     Summary s;
     s.passed = st.passed;
     s.total = st.total;
+    s.lessons = cat_.nlessons;
+    for (size_t i = 0; i < cat_.nlessons; i++)
+        if (lessonRead(cat_.lessons[i]))
+            s.lessonsRead++;
     for (size_t i = 0; i < st.len; i++)
         if (stats_topic_is_weak(&st.topics[i]))
             s.weakTopics << qs(st.topics[i].topic);

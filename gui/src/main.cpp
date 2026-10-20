@@ -4,6 +4,7 @@
 
 #include "engine.h"
 #include "mainwindow.h"
+#include "theme.h"
 
 int main(int argc, char *argv[])
 {
@@ -13,6 +14,7 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName(QStringLiteral("CL-Trainer"));
     QApplication::setApplicationVersion(QStringLiteral(TRAINER_VERSION));
     QApplication::setDesktopFileName(QStringLiteral("cl-trainer")); // icône sous Wayland
+    theme::apply(theme::savedMode()); // avant de créer les fenêtres
 
     try {
         Engine engine(QString::fromLocal8Bit(argv[0]));
