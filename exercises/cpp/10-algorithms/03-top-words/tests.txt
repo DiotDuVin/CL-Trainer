@@ -1,0 +1,29 @@
+=== test: exemple
+--- stdin
+2
+le chat et le chien et le
+--- stdout
+le 3
+et 2
+
+=== test: égalités
+--- stdin
+3
+b a c b a c d
+--- stdout
+a 2
+b 2
+c 2
+
+=== test: K trop grand [hidden]
+--- stdin
+10
+un deux deux
+--- stdout
+deux 2
+un 1
+
+=== test: texte vide [hidden]
+--- stdin
+5
+--- stdout

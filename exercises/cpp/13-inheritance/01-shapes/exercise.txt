@@ -1,0 +1,83 @@
+id: cpp.inheritance.shapes
+title: Des formes polymorphes
+lang: cpp
+level: 3
+topic: inheritance
+tags: virtual, override, abstract-class, unique_ptr
+requires: cpp.exceptions.strict-parse
+files: main.cpp
+estimated_min: 20
+
+## statement
+La classe abstraite `Shape` déclare trois fonctions **virtuelles pures** :
+`name()`, `area()` et `perimeter()`. La classe `Rectangle` est fournie comme
+modèle. Complète `Circle` (rayon `r`) et `Triangle` (côtés `a`, `b`, `c`).
+
+Le `main` fourni lit des formes, les range dans un
+`std::vector<std::unique_ptr<Shape>>` et affiche, avec deux décimales :
+
+    entrée : rect 2 3          sortie : rectangle : aire 6.00, périmètre 10.00
+             circle 1                   cercle : aire 3.14, périmètre 6.28
+             triangle 3 4 5             triangle : aire 6.00, périmètre 12.00
+                                        aire totale : 15.14
+
+Formules : cercle, aire π·r² et périmètre 2·π·r ; triangle, périmètre
+p = a + b + c et aire par la formule de Héron, avec s = p / 2 :
+aire = √(s·(s−a)·(s−b)·(s−c)). Les triangles donnés sont valides.
+
+## hints
+Regarde `Rectangle` : chaque fonction est marquée `override` et `const`,
+exactement comme dans `Shape`.
+---
+π s'obtient avec `std::acos(-1.0)` (en-tête <cmath>), car `M_PI` n'est pas
+standard. La racine carrée : `std::sqrt`.
+---
+`name()` renvoie `"cercle"` ou `"triangle"` : le type de retour est
+`std::string`, un littéral est converti automatiquement.
+
+## explanation
+Solution de référence :
+
+    class Circle : public Shape {
+    public:
+        explicit Circle(double r) : r_(r) {}
+        std::string name() const override { return "cercle"; }
+        double area() const override { return kPi * r_ * r_; }
+        double perimeter() const override { return 2 * kPi * r_; }
+    private:
+        double r_;
+    };
+
+    class Triangle : public Shape {
+    public:
+        Triangle(double a, double b, double c) : a_(a), b_(b), c_(c) {}
+        std::string name() const override { return "triangle"; }
+        double perimeter() const override { return a_ + b_ + c_; }
+        double area() const override {
+            const double s = perimeter() / 2;     // appel d'une autre fonction virtuelle
+            return std::sqrt(s * (s - a_) * (s - b_) * (s - c_));
+        }
+    private:
+        double a_, b_, c_;
+    };
+
+Points importants :
+
+- **`main` ne connaît que `Shape`** : la boucle d'affichage n'a ni `switch`
+  ni `if` sur le genre de forme. Ajouter un `Hexagon` ne demanderait aucune
+  modification de cette boucle, seulement de la lecture.
+- **`override` partout** : si tu oublies `const` sur `area`, le compilateur
+  refuse au lieu de créer une fonction qui ne serait jamais appelée.
+- **Le destructeur virtuel de `Shape`** permet au `vector` de `unique_ptr`
+  de détruire correctement chaque forme.
+- **Comparé au C** : c'est la table `shape_ops` du cours, remplie et vérifiée
+  par le compilateur.
+
+## common_mistakes
+- Oublier `const` ou `override` : la classe reste abstraite (erreur
+  « invalid new-expression of abstract class type ») ou la fonction n'est pas
+  appelée.
+- Écrire `3.14` pour π : 2 × 3.14 = 6.28 passe pour r = 1, mais l'aire d'un
+  cercle de rayon 10 serait 314.00 au lieu de 314.16.
+- Diviser des entiers dans Héron : ici les côtés sont des `double`, mais
+  `(a + b + c) / 2` sur des `int` tronquerait.

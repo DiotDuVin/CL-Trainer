@@ -1,0 +1,58 @@
+=== test: exemple
+--- stdin
+int push 5
+int push 2
+int push 8
+int min
+int pop
+int pop
+int min
+--- stdout
+2
+5
+
+=== test: mots
+--- stdin
+text push poire
+text push abricot
+text push zeste
+text min
+text top
+text pop
+text pop
+text min
+--- stdout
+abricot
+zeste
+poire
+
+=== test: deux piles indépendantes [hidden]
+--- stdin
+int push 3
+text push b
+int push 1
+text push a
+int min
+text min
+int pop
+text pop
+int min
+text min
+--- stdout
+1
+a
+3
+b
+
+=== test: doublons du minimum [hidden]
+--- stdin
+int push 4
+int push 1
+int push 1
+int pop
+int min
+int pop
+int min
+--- stdout
+1
+4

@@ -1,0 +1,43 @@
+=== test: exemple
+--- stdin
+42
+12abc
+99999999999
+--- stdout
+42
+pas un nombre
+hors limites
+
+=== test: signes et zéros
+--- stdin
+-7
++5
+007
+0
+--- stdout
+-7
+5
+7
+0
+
+=== test: textes invalides [hidden]
+--- stdin
+abc
+
+4 2
+3.14
+--- stdout
+pas un nombre
+pas un nombre
+pas un nombre
+pas un nombre
+
+=== test: limites de int [hidden]
+--- stdin
+2147483647
+-2147483648
+2147483648
+--- stdout
+2147483647
+-2147483648
+hors limites

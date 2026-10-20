@@ -1,0 +1,39 @@
+=== test: exemple
+--- stdin
+linus 50
+ada 70
+grace 50
+--- stdout
+1. ada 70
+2. grace 50
+3. linus 50
+
+=== test: déjà trié
+--- stdin
+a 3
+b 2
+c 1
+--- stdout
+1. a 3
+2. b 2
+3. c 1
+
+=== test: égalités multiples [hidden]
+--- stdin
+zoe 10
+bob 10
+mia 20
+al 10
+--- stdout
+1. mia 20
+2. al 10
+3. bob 10
+4. zoe 10
+
+=== test: scores négatifs [hidden]
+--- stdin
+x -5
+y 0
+--- stdout
+1. y 0
+2. x -5

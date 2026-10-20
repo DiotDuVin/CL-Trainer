@@ -1,0 +1,97 @@
+id: cpp.project.library
+title: Une classe répartie entre .h et .cpp
+lang: cpp
+level: 3
+topic: project
+tags: header, separate-compilation, class, map
+requires: cpp.project.stats
+files: main.cpp, library.h, library.cpp
+estimated_min: 25
+
+## statement
+La classe `Library` gère les exemplaires des livres d'une médiathèque. Sa
+**déclaration** est dans `library.h` (à ne pas modifier) ; ses fonctions
+membres sont **définies** dans `library.cpp`, où `add` et `available` sont
+déjà écrites. Complète les trois autres :
+
+- `bool borrow(title)` : emprunte un exemplaire ; `false` si aucun n'est
+  disponible (ou si le livre est inconnu) ;
+- `bool give_back(title)` : rend un exemplaire ; `false` si aucun n'est
+  emprunté ;
+- `void print(std::ostream &out) const` : une ligne `titre : disponibles/total`
+  par livre, par ordre alphabétique, ou `(aucun livre)`.
+
+Le `main` fourni lit les commandes (les titres peuvent contenir des espaces) :
+
+    entrée : add 2 Dune               sortie : ok
+             borrow Dune                       ok
+             borrow Dune                       ok
+             borrow Dune                       indisponible : Dune
+             return Dune                       ok
+             list                              Dune : 1/2
+
+**Un livre inconnu ne doit jamais apparaître dans la liste**, même après un
+`borrow` ou un `return` refusé.
+
+## hints
+Hors de la classe, chaque définition commence par `Library::` :
+`bool Library::borrow(const std::string &title) { ... }`. Inspire-toi de
+`available`.
+---
+Pour chercher un livre sans l'insérer, utilise `books_.find(title)` et
+compare le résultat à `books_.end()`. `books_[title]` créerait une entrée
+vide pour un titre inconnu (chapitre 9).
+---
+Dans `print`, le `const` final est obligatoire : il fait partie de la
+signature déclarée dans `library.h`. Sans lui : « no declaration matches ».
+
+## explanation
+Solution de référence (fonctions ajoutées à `library.cpp`) :
+
+    bool Library::borrow(const std::string &title) {
+        auto it = books_.find(title);
+        if (it == books_.end() || it->second.borrowed == it->second.total)
+            return false;
+        ++it->second.borrowed;
+        return true;
+    }
+
+    bool Library::give_back(const std::string &title) {
+        auto it = books_.find(title);
+        if (it == books_.end() || it->second.borrowed == 0)
+            return false;
+        --it->second.borrowed;
+        return true;
+    }
+
+    void Library::print(std::ostream &out) const {
+        if (books_.empty())
+            out << "(aucun livre)\n";
+        for (const auto &[title, stock] : books_)
+            out << title << " : " << stock.total - stock.borrowed << '/'
+                << stock.total << '\n';
+    }
+
+Points importants :
+
+- **`Library::`** donne accès aux membres privés (`books_`) : sans lui, on
+  définirait des fonctions libres, et `books_` serait « not declared in this
+  scope ».
+- **Le `const` se répète** dans la définition ; les commentaires et les
+  valeurs par défaut restent dans l'en-tête.
+- **`Stock` est un type imbriqué privé** : dans le `.cpp`, après
+  `Library::`, on peut l'utiliser directement. Hors de la classe, son nom
+  complet serait `Library::Stock`, et il est inaccessible car privé.
+- **`print` reçoit un `std::ostream &`** : le `main` lui passe `std::cout`,
+  un test pourrait lui passer un `std::ostringstream`. La classe n'est pas
+  liée à la console.
+- **`library.h` inclut `<map>` lui-même**, car la déclaration de la classe
+  contient le membre `books_`. Un en-tête inclut tout ce dont il a besoin,
+  sans compter sur les fichiers qui l'incluent.
+
+## common_mistakes
+- `books_[title]` dans `borrow` ou `give_back` : un titre inconnu apparaît
+  ensuite dans la liste avec `0/0`.
+- Oublier `Library::` : erreurs « 'books_' was not declared in this scope ».
+- Oublier le `const` de `print` : « no declaration matches ».
+- Rendre un livre jamais emprunté : `borrowed` deviendrait négatif.

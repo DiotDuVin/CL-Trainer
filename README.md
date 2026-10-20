@@ -7,11 +7,13 @@ correction automatique et des explications.
 Le moteur est écrit en C11 (POSIX). Il compile et exécute votre code avec les vrais
 outils (`g++`, `git`, `dotnet`, `cargo`), puis compare la sortie aux tests.
 
-> État : **étape 5a**. Des **cours** (pensés pour qui connaît le C) suivis d'exercices
-> corrigés automatiquement, en ligne de commande ou dans une application graphique.
-> Contenu actuel : 9 chapitres C++ (premier programme, références, fonctions, vector/array,
-> classes, RAII, pointeurs intelligents, déplacement, map/set), 24 exercices.
-> À venir : 5 autres chapitres C++, puis Git, C# et Rust.
+> État : **étape 5b terminée**. Des **cours** (pensés pour qui connaît le C) suivis
+> d'exercices corrigés automatiquement, en ligne de commande ou dans une application
+> graphique. Contenu actuel : le parcours C++ complet, 14 chapitres (premier programme,
+> références, fonctions, vector/array, classes, RAII, pointeurs intelligents, déplacement,
+> map/set, algorithmes et lambdas, templates, exceptions, héritage et polymorphisme,
+> organisation d'un projet en plusieurs fichiers), 35 exercices.
+> À venir : embellissement de l'application, révision espacée, puis Git, C# et Rust.
 
 ![Application graphique : résultats des tests](docs/images/gui-echec.png)
 

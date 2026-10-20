@@ -1,0 +1,112 @@
+id: cpp.project.stats
+title: Un module de statistiques en trois fichiers
+lang: cpp
+level: 2
+topic: project
+tags: header, separate-compilation, namespace
+requires: cpp.inheritance.shapes
+files: main.cpp, stats.h, stats.cpp
+estimated_min: 20
+
+## statement
+Le projet compte trois fichiers : `main.cpp` (le programme, à ne pas
+modifier), `stats.h` (l'interface du module, à ne pas modifier) et
+`stats.cpp` (l'implémentation, **à compléter**). Ouvre le **dossier** de
+l'exercice pour voir les trois.
+
+Dans le namespace `stats`, écris :
+
+- `mean(values)` : la moyenne ;
+- `median(values)` : la valeur du milieu de la liste **triée**, ou la moyenne
+  des deux valeurs du milieu si le nombre de valeurs est pair ;
+- `stddev(values)` : l'écart-type, √(moyenne des (x − moyenne)²).
+
+Les trois renvoient 0 pour une liste vide. Le `main` lit des nombres et
+affiche, avec deux décimales :
+
+    entrée : 2 4 4 4 5 5 7 9      sortie : valeurs : 8
+                                           moyenne 5.00
+                                           médiane 4.50
+                                           écart-type 2.00
+
+Le correcteur compile `main.cpp` et `stats.cpp` ensemble, comme
+`g++ main.cpp stats.cpp`.
+
+## hints
+Lis d'abord `stats.h` : les signatures de `stats.cpp` doivent lui
+correspondre exactement (le `const &` compris).
+---
+`median` reçoit son vecteur **par valeur** : c'est une copie, tu peux donc la
+trier avec `std::sort` sans modifier les données de l'appelant.
+---
+La fonction `square` du namespace anonyme est interne à `stats.cpp` : elle
+n'est pas déclarée dans l'en-tête, et `main.cpp` ne peut pas l'appeler.
+Tant que `stddev` ne l'appelle pas, le compilateur avertit « defined but not
+used » : c'est normal, l'avertissement disparaît quand tu l'utilises.
+
+## explanation
+Solution de référence (`stats.cpp`) :
+
+    #include "stats.h"
+    #include <algorithm>
+    #include <cmath>
+    #include <numeric>
+
+    namespace {
+    double square(double x) { return x * x; }
+    }
+
+    namespace stats {
+
+    double mean(const std::vector<double> &values) {
+        if (values.empty())
+            return 0;
+        return std::accumulate(values.begin(), values.end(), 0.0) / values.size();
+    }
+
+    double median(std::vector<double> values) {
+        if (values.empty())
+            return 0;
+        std::sort(values.begin(), values.end());
+        const std::size_t mid = values.size() / 2;
+        if (values.size() % 2 == 1)
+            return values[mid];
+        return (values[mid - 1] + values[mid]) / 2;
+    }
+
+    double stddev(const std::vector<double> &values) {
+        if (values.empty())
+            return 0;
+        const double m = mean(values);    // même namespace : pas besoin de stats::
+        double sum = 0;
+        for (double x : values)
+            sum += square(x - m);
+        return std::sqrt(sum / values.size());
+    }
+
+    }  // namespace stats
+
+Points importants :
+
+- **`stats.cpp` inclut `stats.h`** : le compilateur vérifie ainsi que les
+  définitions correspondent aux déclarations.
+- **Rouvrir le namespace** dans le `.cpp` (`namespace stats { ... }`) évite
+  d'écrire `stats::` devant chaque définition.
+- **Le namespace anonyme** cache `square` : un autre `.cpp` du projet pourrait
+  avoir sa propre `square` sans *multiple definition*.
+- **`0.0` dans `accumulate`** : avec `0`, les sommes partielles seraient des
+  `int` (chapitre 10).
+- **Si tu définis `mean` hors du namespace** (sans `stats::`), `main.cpp`
+  appelle `stats::mean`, qui n'est définie nulle part : *undefined reference
+  to 'stats::mean(...)'*, une erreur d'édition de liens.
+
+## common_mistakes
+- Définir les fonctions hors du namespace `stats` : *undefined reference* à
+  l'édition de liens.
+- Changer la signature (`std::vector<double> values` au lieu de
+  `const std::vector<double> &values`) : c'est une autre fonction, la vraie
+  reste non définie.
+- Oublier de trier avant de prendre la médiane.
+- Médiane paire : `values[mid]` seul, au lieu de la moyenne des deux valeurs
+  du milieu.
+- `std::accumulate(..., 0)` : moyenne tronquée.

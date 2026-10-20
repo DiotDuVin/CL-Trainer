@@ -1,0 +1,78 @@
+id: cpp.templates.clamp
+title: Une fonction pour tous les types
+lang: cpp
+level: 3
+topic: templates
+tags: function-template, vector
+requires: cpp.algorithms.leaderboard
+files: main.cpp
+estimated_min: 20
+
+## statement
+Complète les deux **fonctions template** (leur squelette est fourni) :
+
+- `T clamp_to(const T &value, const T &lo, const T &hi)` : renvoie `lo` si
+  `value < lo`, `hi` si `hi < value`, sinon `value` ;
+- `std::size_t count_in_range(const std::vector<T> &values, const T &lo, const T &hi)` :
+  le nombre de valeurs comprises entre `lo` et `hi` (bornes incluses).
+
+N'utilise **que l'opérateur `<`** pour comparer : c'est la seule chose exigée
+du type `T`, et cela permet d'utiliser tes fonctions avec n'importe quel type
+ordonné.
+
+Le `main` fourni (à ne pas modifier) lit un type (`int`, `double` ou `text`),
+deux bornes, puis des valeurs. Il affiche les valeurs « bornées » et combien
+étaient déjà dans l'intervalle :
+
+    entrée : int 0 10 -5 3 42      sortie : 0 3 10
+                                            1 dans [0, 10]
+
+## hints
+`template <typename T>` placé juste avant chaque fonction en fait un modèle :
+le compilateur déduit `T` à partir des arguments, et génère une version pour
+`int`, une pour `double` et une pour `std::string`.
+---
+« lo ≤ x » s'écrit avec `<` seul : `!(x < lo)`. Et « x ≤ hi » : `!(hi < x)`.
+---
+`count_in_range` peut utiliser `std::count_if` avec une lambda qui capture
+`lo` et `hi` (par référence : ce sont déjà des références).
+
+## explanation
+Solution de référence :
+
+    template <typename T>
+    T clamp_to(const T &value, const T &lo, const T &hi) {
+        if (value < lo)
+            return lo;
+        if (hi < value)
+            return hi;
+        return value;
+    }
+
+    template <typename T>
+    std::size_t count_in_range(const std::vector<T> &values, const T &lo, const T &hi) {
+        return static_cast<std::size_t>(std::count_if(values.begin(), values.end(),
+            [&lo, &hi](const T &x) { return !(x < lo) && !(hi < x); }));
+    }
+
+Points importants :
+
+- **Un seul code, trois types** : `main` instancie `clamp_to<int>`,
+  `clamp_to<double>` et `clamp_to<std::string>`. Le compilateur génère trois
+  fonctions, chacune vérifiée et optimisée pour son type.
+- **N'exiger que `<`** : c'est la convention de la bibliothèque standard
+  (`std::sort`, `std::min`, `std::map` n'exigent que `<`). Utiliser aussi `<=`,
+  `>` ou `==` imposerait plus d'opérateurs au type `T`, sans raison.
+- **Paramètres en `const T &`** : `T` peut être un gros objet (`std::string`),
+  et on ne veut pas le copier.
+- **`std::clamp`** (C++17, <algorithm>) fait exactement la première fonction.
+  En vrai code, on l'utilise ; ici, c'était pour écrire un template.
+- **`count_if` renvoie un nombre signé** (`std::ptrdiff_t`) : le
+  `static_cast` rend la conversion vers `std::size_t` explicite.
+
+## common_mistakes
+- Écrire une version par type (copier-coller) : c'est exactement ce que les
+  templates évitent.
+- Utiliser `<=` ou `>` : ça marche pour les nombres et les chaînes, mais
+  impose plus d'exigences au type.
+- Inverser les tests de bornes (`value < hi`...).

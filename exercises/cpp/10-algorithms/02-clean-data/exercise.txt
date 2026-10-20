@@ -1,0 +1,76 @@
+id: cpp.algorithms.clean-data
+title: Nettoyer des mesures sans boucle
+lang: cpp
+level: 3
+topic: algorithms
+tags: remove_if, erase, transform, accumulate, lambda
+requires: cpp.algorithms.leaderboard
+files: main.cpp
+estimated_min: 20
+
+## statement
+L'entrée contient des mesures (entiers). Un capteur défectueux produit parfois
+des valeurs aberrantes : **hors de l'intervalle [min, max]**, où `min` et `max`
+sont les deux premiers nombres de l'entrée.
+
+Le programme doit :
+
+1. supprimer les mesures aberrantes (en gardant l'ordre des autres) ;
+2. convertir chaque mesure restante de dixièmes de degré en degrés (diviser
+   par 10, en `double`) ;
+3. afficher les mesures converties (une décimale), puis leur somme.
+
+    entrée : 0 400           sortie : 12.5 30.0 0.0
+             125 -3 300 999 0         somme 42.5
+
+S'il ne reste aucune mesure, affiche seulement `somme 0.0`.
+
+**Contrainte** : chaque étape utilise un algorithme de la bibliothèque standard
+(`std::remove_if`, `std::transform`, `std::accumulate`) et une lambda. Aucune
+boucle `for` ou `while`, sauf pour lire l'entrée et pour afficher.
+
+## hints
+Étape 1, l'idiome erase-remove :
+`v.erase(std::remove_if(v.begin(), v.end(), [lo, hi](int x) { ... }), v.end());`
+La lambda capture `lo` et `hi` et renvoie `true` pour les valeurs à SUPPRIMER.
+---
+Étape 2 : `std::vector<double> deg(v.size());` puis
+`std::transform(v.begin(), v.end(), deg.begin(), [](int x) { return x / 10.0; });`
+---
+Étape 3 : `std::accumulate(deg.begin(), deg.end(), 0.0)`. Avec `0` au lieu de
+`0.0`, la somme serait calculée en `int` !
+
+## explanation
+Solution de référence :
+
+    v.erase(std::remove_if(v.begin(), v.end(),
+                           [lo, hi](int x) { return x < lo || x > hi; }),
+            v.end());
+
+    std::vector<double> deg(v.size());
+    std::transform(v.begin(), v.end(), deg.begin(), [](int x) { return x / 10.0; });
+
+    const double sum = std::accumulate(deg.begin(), deg.end(), 0.0);
+
+Points importants :
+
+- **Erase-remove** : `remove_if` regroupe au début ce qu'il faut garder et
+  renvoie la nouvelle fin ; `erase` supprime le reste. Seul, `remove_if` ne
+  change pas la taille.
+- **La capture `[lo, hi]`** : la lambda a besoin des bornes, qui sont des
+  variables locales de `main`. Une capture par copie suffit, car elle ne les
+  modifie pas.
+- **`x / 10.0`** : le `10.0` (un `double`) force une division réelle. `x / 10`
+  serait une division entière.
+- **`0.0` dans accumulate** : le type de la valeur initiale est le type de la
+  somme. C'est un piège classique.
+- **Chaque ligne dit ce qu'elle fait** : filtrer, convertir, sommer. Avec des
+  boucles, il faudrait lire chaque corps de boucle pour le comprendre.
+
+## common_mistakes
+- `remove_if` sans `erase` : les valeurs aberrantes restent en fin de vecteur.
+- Une lambda qui renvoie `true` pour les valeurs à GARDER : on supprime
+  exactement les bonnes mesures.
+- `std::accumulate(..., 0)` : somme tronquée.
+- Oublier de dimensionner le vecteur de destination de `std::transform` :
+  écriture hors limites.
