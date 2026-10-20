@@ -7,8 +7,9 @@ correction automatique et des explications.
 Le moteur est écrit en C11 (POSIX). Il compile et exécute votre code avec les vrais
 outils (`g++`, `git`, `dotnet`, `cargo`), puis compare la sortie aux tests.
 
-> État : **étape 2**. Moteur fonctionnel pour C++ (`list`, `show`, `start`, `check`).
-> À venir : suivi de progression, indices, validation, répétition espacée, Git, C#, Rust.
+> État : **étape 3**. Moteur C++ complet avec suivi de progression, indices,
+> recommandations et validation des exercices. À venir : application graphique (Qt),
+> une trentaine d'exercices C++, puis Git, C# et Rust.
 
 ## Installation
 
@@ -34,12 +35,20 @@ make install PREFIX=$HOME/.local    # ~/.local/bin doit être dans votre PATH
 ## Utilisation
 
 ```sh
-trainer list                       # catalogue des exercices
+trainer next                       # que faire maintenant ?
+trainer list                       # catalogue et état de chaque exercice
 trainer show cpp.basics.hello      # énoncé
 trainer start cpp.basics.hello     # copie le code de départ dans ~/trainer-workspace
 trainer start cpp.basics.hello --open   # ... et l'ouvre dans VS Code
 trainer check cpp.basics.hello     # compile, teste, explique
+trainer hint cpp.basics.hello      # indice suivant
+trainer solution cpp.basics.hello  # solution commentée (notée dans la progression)
+trainer stats                      # progression et points faibles par thème
+trainer doctor                     # outils installés et dossiers utilisés
 ```
+
+La progression est enregistrée dans `~/.local/share/trainer/progress.txt` (ou
+`$XDG_DATA_HOME/trainer/`). C'est un fichier texte lisible : une ligne par exercice.
 
 Votre code se trouve dans `~/trainer-workspace/<langage>/<id>/`. Vous pouvez changer
 cet emplacement avec `--workspace DIR` ou la variable `TRAINER_WORKSPACE`. Astuce :
@@ -61,8 +70,13 @@ Ouvrez le **dossier de l'exercice** (pas tout le workspace), par exemple avec
 
 ## Développement
 
+Le moteur est une bibliothèque (`libtrainer.a`, dossiers `src/core` et `src/util`, en-tête
+`include/trainer.h`) sans aucun affichage. Le programme `trainer` (`src/cli`) n'en est qu'une
+interface ; l'application graphique en sera une autre.
+
 ```sh
-make test        # tests unitaires (tests/unit) + tests de bout en bout (tests/e2e.sh)
+make test        # tests unitaires + bout en bout + en-têtes compilables en C++20
+./trainer validate   # chaque solution de référence passe ses tests, chaque starter échoue
 make asan        # mêmes tests, moteur compilé avec AddressSanitizer + UBSan
 make valgrind    # tests sous valgrind (aucune fuite tolérée)
 make CC=clang    # vérifier avec un second compilateur

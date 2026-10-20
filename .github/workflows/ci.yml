@@ -23,6 +23,8 @@ jobs:
         run: make CC=${{ matrix.cc }} CFLAGS=-Werror
       - name: Tests
         run: make CC=${{ matrix.cc }} test
+      - name: Validation des exercices (solutions de référence)
+        run: ./trainer validate
       - name: AddressSanitizer
         if: matrix.cc == 'gcc'
         run: make clean && make asan
