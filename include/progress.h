@@ -63,6 +63,7 @@ typedef enum {
     EVENT_CHECK_PASSED,
     EVENT_HINT,           /* arg = numéro de l'indice révélé (1..n) */
     EVENT_SOLUTION,
+    EVENT_LESSON_READ,    /* cours lu : son entrée passe à STATUS_PASSED */
 } progress_event;
 
 /* Charge le fichier (inexistant = progression vide). 0 / -1. */

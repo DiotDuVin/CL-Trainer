@@ -1,0 +1,79 @@
+id: cpp.functions.longest
+title: Le mot le plus long
+lang: cpp
+level: 2
+topic: functions
+tags: range-for, auto, string
+requires: cpp.functions.describe
+files: main.cpp
+estimated_min: 15
+
+## statement
+Lis tous les mots de l'entrée (séparés par des blancs). Pour chaque mot, ne
+garde que ses **lettres** : la ponctuation et les chiffres sont retirés, donc
+« monde! » devient « monde » et « C++ » devient « C ». Un mot sans aucune
+lettre est ignoré.
+
+Affiche le plus long mot nettoyé et sa longueur, au format `mot (n)`. En cas
+d'égalité, garde le **premier** rencontré. S'il n'y a aucun mot, affiche
+`aucun mot`.
+
+    entrée : Bonjour, le monde!
+    sortie : Bonjour (7)
+
+Les mots ne contiennent pas de lettres accentuées.
+
+Contrainte : écris une fonction `std::string letters_only(const std::string &word)`
+et parcours le mot avec une **boucle for sur intervalle**.
+
+## hints
+`for (char c : word)` parcourt les caractères sans indice.
+---
+Pour tester si c'est une lettre : `std::isalpha(static_cast<unsigned char>(c))`
+(en-tête <cctype>).
+---
+Pour garder le premier en cas d'égalité, ne remplace le meilleur mot que si
+le nouveau est **strictement** plus long.
+
+## explanation
+Solution de référence :
+
+    std::string letters_only(const std::string &word) {
+        std::string result;
+        for (char c : word)
+            if (std::isalpha(static_cast<unsigned char>(c)))
+                result += c;
+        return result;
+    }
+
+    std::string word, best;
+    while (std::cin >> word) {
+        const auto cleaned = letters_only(word);
+        if (cleaned.size() > best.size())
+            best = cleaned;
+    }
+    if (best.empty())
+        std::cout << "aucun mot\n";
+    else
+        std::cout << best << " (" << best.size() << ")\n";
+
+Points importants :
+
+- `for (char c : word)` : une copie de chaque caractère suffit, car on ne
+  modifie pas `word`. Pour un gros objet par élément, on écrirait
+  `const auto &`.
+- `const auto cleaned = ...` : le type (`std::string`) se déduit de la
+  fonction. Le `const` documente qu'on ne le modifiera plus.
+- Le `>` strict garde le premier mot en cas d'égalité ; avec `>=`, on
+  garderait le dernier.
+- `best` vide sert aussi de cas « aucun mot » : pas besoin d'un booléen à
+  part, puisqu'un mot nettoyé gardé n'est jamais vide.
+- `letters_only` renvoie une nouvelle chaîne au lieu de modifier son
+  argument : la fonction est plus simple à comprendre et à tester.
+
+## common_mistakes
+- `std::isalpha(c)` sans conversion en `unsigned char` : comportement
+  indéfini pour les caractères négatifs.
+- Utiliser `>=` : c'est le dernier mot le plus long qui est gardé.
+- Compter un mot sans lettre (« 123 », « !!! ») comme un mot de longueur 0
+  et afficher « (0) » au lieu de « aucun mot ».

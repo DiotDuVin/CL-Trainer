@@ -1,0 +1,87 @@
+id: cpp.functions.price
+title: Valeurs par défaut : afficher un prix
+lang: cpp
+level: 2
+topic: functions
+tags: default-arguments, formatting
+requires: cpp.functions.describe
+files: main.cpp
+estimated_min: 20
+
+## statement
+Écris la fonction
+
+    std::string format_price(double amount, const std::string &currency = "EUR",
+                             int decimals = 2)
+
+qui formate un montant avec exactement `decimals` chiffres après la virgule
+(arrondi), suivi d'un espace et de la devise. Les deux derniers paramètres
+ont des **valeurs par défaut**.
+
+Chaque ligne de l'entrée contient un montant, puis éventuellement une devise,
+puis éventuellement un nombre de décimales. Ton `main` doit appeler
+`format_price` avec 1, 2 ou 3 arguments selon ce que contient la ligne :
+
+    12.5            ->  12.50 EUR
+    3 USD           ->  3.00 USD
+    7.4 JPY 0       ->  7 JPY
+    0.125 BTC 3     ->  0.125 BTC
+
+## hints
+Pour découper une ligne : `std::istringstream in(line);` (en-tête <sstream>)
+puis `in >> amount`, `in >> currency`... Chaque lecture renvoie faux s'il
+n'y a plus rien à lire.
+---
+Pour fixer le nombre de décimales : `os << std::fixed << std::setprecision(decimals) << amount;`
+(en-tête <iomanip>), avec `std::ostringstream os`.
+---
+Les valeurs par défaut s'écrivent dans la déclaration de la fonction :
+`int decimals = 2`. Ensuite, `format_price(x)` et `format_price(x, "USD")`
+sont des appels valides.
+
+## explanation
+Solution de référence :
+
+    std::string format_price(double amount, const std::string &currency = "EUR",
+                             int decimals = 2) {
+        std::ostringstream os;
+        os << std::fixed << std::setprecision(decimals) << amount << ' ' << currency;
+        return os.str();
+    }
+
+    // dans main, pour chaque ligne :
+    std::istringstream in(line);
+    double amount = 0;
+    std::string currency;
+    int decimals = 0;
+    if (!(in >> amount))
+        continue;
+    if (!(in >> currency))
+        std::cout << format_price(amount) << '\n';
+    else if (!(in >> decimals))
+        std::cout << format_price(amount, currency) << '\n';
+    else
+        std::cout << format_price(amount, currency, decimals) << '\n';
+
+Points importants :
+
+- Les valeurs par défaut sont toujours les **derniers** paramètres, et on ne
+  peut pas en sauter un : pour donner `decimals`, il faut aussi donner
+  `currency`. C'est pour ça que l'ordre (devise, puis décimales) compte.
+- `std::fixed` + `std::setprecision(n)` équivaut à `%.nf` en C. Sans
+  `std::fixed`, `setprecision` compte les chiffres significatifs et non
+  les décimales.
+- `std::istringstream` lit dans une chaîne comme `std::cin` lit l'entrée :
+  c'est l'outil standard pour découper une ligne.
+- Un `double` ne représente pas exactement la plupart des décimaux
+  (0.1, 2.675...). Pour de la vraie monnaie, on calcule en centimes avec des
+  entiers : l'affichage arrondi ne suffit pas à rendre les calculs justes.
+
+## common_mistakes
+- Oublier `std::fixed` : 12.5 s'affiche « 12 » ou « 13 » avec
+  setprecision(2) en chiffres significatifs.
+- Mettre une valeur par défaut au milieu : `f(double a, int b = 2, std::string c)`
+  ne compile pas.
+- Lire toute la ligne avec `std::cin >>` : on ne sait plus quels champs
+  appartiennent à quelle ligne. Il faut `std::getline`, puis un
+  `std::istringstream` par ligne.

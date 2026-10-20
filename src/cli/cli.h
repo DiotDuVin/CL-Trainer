@@ -37,12 +37,15 @@ void print_status_symbol(exercise_status st, int unlocked);
 void print_bar(size_t done, size_t total, int width);
 /* Nom lisible d'un langage : "C++" pour "cpp". */
 const char *lang_name(const char *lang);
+/* Affiche un cours et les exercices de son chapitre (cmd_lesson.c). */
+void print_lesson(const lesson *l, const catalog *cat, const progress *p);
 
 /* ---- Sous-commandes : argv[0] est le nom de la commande ---- */
 int cmd_list(const trainer_config *cfg, int argc, char **argv);
 int cmd_show(const trainer_config *cfg, int argc, char **argv);
 int cmd_start(const trainer_config *cfg, int argc, char **argv);
 int cmd_check(const trainer_config *cfg, int argc, char **argv);
+int cmd_learn(const trainer_config *cfg, int argc, char **argv);
 int cmd_hint(const trainer_config *cfg, int argc, char **argv);
 int cmd_solution(const trainer_config *cfg, int argc, char **argv);
 int cmd_next(const trainer_config *cfg, int argc, char **argv);

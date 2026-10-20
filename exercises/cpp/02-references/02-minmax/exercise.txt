@@ -1,0 +1,62 @@
+id: cpp.references.minmax
+title: Minimum et maximum
+lang: cpp
+level: 2
+topic: references
+tags: references, const, loops
+requires: cpp.references.swap
+files: main.cpp
+estimated_min: 15
+
+## statement
+Complète la fonction
+
+    void update_min_max(int value, int &low, int &high)
+
+qui met à jour `low` et `high` pour tenir compte de `value` : si `value` est
+plus petit que `low`, `low` devient `value` ; si `value` est plus grand que
+`high`, `high` devient `value`.
+
+Le programme fourni lit des entiers jusqu'à la fin de l'entrée et affiche
+`min max`. Si l'entrée est vide, il affiche `vide`.
+
+    entrée : 4 -2 9 3
+    sortie : -2 9
+
+Ne modifie pas `main`.
+
+## hints
+Pourquoi `value` est-il passé par valeur alors que `low` et `high` sont des
+références ? Relis le tableau « Que choisir ? » du cours.
+---
+Deux `if` indépendants suffisent : une même valeur peut être à la fois le
+nouveau minimum et le nouveau maximum (c'est le cas de la première !).
+
+## explanation
+Solution de référence :
+
+    void update_min_max(int value, int &low, int &high) {
+        if (value < low)
+            low = value;
+        if (value > high)
+            high = value;
+    }
+
+- `value` est un petit type qu'on ne fait que lire : passage **par valeur**.
+- `low` et `high` doivent être modifiés : **références** non constantes.
+- Le `main` fourni initialise `low` et `high` avec la **première** valeur
+  lue, et pas avec 0 : avec 0, une liste uniquement négative donnerait un
+  maximum faux de 0. C'est le piège classique de ce genre de calcul.
+
+Deux `if` et pas `if / else if` : avec un `else`, une valeur à la fois
+nouveau minimum et nouveau maximum ne mettrait à jour que l'un des deux.
+
+Variante plus moderne : renvoyer le résultat plutôt que de modifier des
+paramètres. Avec la bibliothèque standard :
+`low = std::min(low, value); high = std::max(high, value);` (<algorithm>).
+
+## common_mistakes
+- Oublier `&` sur `low` ou `high` : la mise à jour se perd.
+- Utiliser `else if` : faux dans certains cas.
+- Dans son propre code : initialiser min/max à 0 au lieu de la première
+  valeur (ou de `std::numeric_limits<int>::max()` / `min()`).

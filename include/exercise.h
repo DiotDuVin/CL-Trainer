@@ -44,6 +44,7 @@ typedef struct {
     strvec hints;           /* indices progressifs */
 
     char *dir;              /* dossier de l'exercice (NULL si parsé depuis un texte) */
+    char *lesson;           /* id du cours du chapitre (rempli par le catalogue), ou NULL */
 } exercise;
 
 #define EXERCISE_DEFAULT_TIMEOUT_MS 2000L

@@ -1,0 +1,29 @@
+=== test: les quatre types
+--- stdin
+int 42
+double 2.5
+bool 1
+text bonjour monde
+--- stdout
+entier : 42
+réel : 2.5
+booléen : vrai
+texte : bonjour monde (13 caractères)
+
+=== test: faux et négatifs
+--- stdin
+bool 0
+int -7
+double -0.25
+--- stdout
+booléen : faux
+entier : -7
+réel : -0.25
+
+=== test: un réel entier reste un réel [hidden]
+--- stdin
+double 3
+text a
+--- stdout
+réel : 3
+texte : a (1 caractères)

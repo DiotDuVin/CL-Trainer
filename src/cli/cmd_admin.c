@@ -27,19 +27,24 @@ int cmd_validate(const trainer_config *cfg, int argc, char **argv)
     }
 
     rc = TR_EXIT_OK;
-    for (size_t i = 0; i < cat.len && rc == TR_EXIT_OK; i++) {
-        const exercise *ex = &cat.items[i];
+    /* Les cours d'abord (leurs exemples), puis les exercices. */
+    const size_t total = cat.nlessons + cat.len;
+    for (size_t i = 0; i < total && rc == TR_EXIT_OK; i++) {
+        const lesson *l = i < cat.nlessons ? &cat.lessons[i] : NULL;
+        const exercise *ex = l ? NULL : &cat.items[i - cat.nlessons];
+        const char *id = l ? l->id : ex->id;
         if (argc > 1) { /* ids donnés en argument : seulement ceux-là */
             int wanted = 0;
             for (int a = 1; a < argc; a++)
-                wanted |= strcmp(argv[a], ex->id) == 0;
+                wanted |= strcmp(argv[a], id) == 0;
             if (!wanted)
                 continue;
         }
-        printf("  %s ... ", ex->id);
+        printf("  %s%s ... ", l ? "📖 " : "", id);
         fflush(stdout); /* la compilation prend un moment */
         strvec problems = STRVEC_INIT;
-        if (validate_exercise(ex, &problems) != 0) {
+        int vrc = l ? validate_lesson(l, &problems) : validate_exercise(ex, &problems);
+        if (vrc != 0) {
             printf("%simpossible%s\n", term(T_RED), term(T_RESET));
             fprintf(stderr, "trainer: %s\n", err_msg());
             rc = TR_EXIT_ERROR;
@@ -55,11 +60,11 @@ int cmd_validate(const trainer_config *cfg, int argc, char **argv)
         sv_free(&problems);
     }
     if (argc > 1 && checked != (size_t)(argc - 1)) {
-        fprintf(stderr, "trainer: exercice(s) introuvable(s) parmi les arguments\n");
+        fprintf(stderr, "trainer: cours ou exercice(s) introuvable(s) parmi les arguments\n");
         rc = TR_EXIT_ERROR;
     }
     if (rc == TR_EXIT_OK) {
-        printf("\n%zu exercice(s) vérifié(s), %zu rejeté(s).\n", checked, rejected);
+        printf("\n%zu cours et exercice(s) vérifié(s), %zu rejeté(s).\n", checked, rejected);
         rc = rejected ? TR_EXIT_FAIL : TR_EXIT_OK;
     }
     catalog_free(&cat);

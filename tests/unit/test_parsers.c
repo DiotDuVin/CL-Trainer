@@ -1,6 +1,7 @@
 /* test_parsers.c — tests des parsers exercise.txt / tests.txt et de compare. */
 #include "compare.h"
 #include "json.h"
+#include "lesson.h"
 #include "error.h"
 #include "exercise.h"
 #include "test.h"
@@ -186,4 +187,55 @@ void test_json_suite(void)
     compare_first_diff("a\n", "a", COMPARE_EXACT, &d);
     CHECK(d.same_lines);
     output_diff_free(&d);
+}
+
+void test_lesson_suite(void)
+{
+    const char *text =
+        "id: cpp.lesson.x\n"
+        "title: Cours X\n"
+        "lang: cpp\n"
+        "topic: t\n"
+        "estimated_min: 5\n"
+        "---\n"
+        "\n"
+        "## Titre\n"
+        "```cpp example\n"
+        "int main() {}\n"
+        "```\n"
+        "\n"
+        "```output\n"
+        "rien\n"
+        "```\n"
+        "```cpp\n"
+        "fragment(); // pas un exemple : non exécuté\n"
+        "```\n"
+        "```cpp example\n"
+        "int main() { return 0; }\n"
+        "```\n";
+    lesson l;
+    CHECK(lesson_parse(text, "l.md", &l) == 0);
+    CHECK_STR(l.id, "cpp.lesson.x");
+    CHECK_INT(l.estimated_min, 5);
+    CHECK_INT(l.body_line, 8);
+    CHECK(strncmp(l.body, "## Titre", 8) == 0);
+    lesson_examples ex;
+    lesson_extract_examples(&l, &ex);
+    CHECK_INT(ex.len, 2);
+    if (ex.len == 2) {
+        CHECK_STR(ex.items[0].code, "int main() {}\n");
+        CHECK_STR(ex.items[0].expected, "rien\n");
+        CHECK_INT(ex.items[0].line, 9); /* ligne du fichier, pas du corps */
+        CHECK(ex.items[1].expected == NULL);
+    }
+    lesson_examples_free(&ex);
+    lesson_free(&l);
+
+    CHECK(lesson_parse("id: cpp.lesson.x\ntitle: t\nlang: cpp\ntopic: t\n## pas de séparateur\n",
+                       "l.md", &l) != 0);
+    CHECK(lesson_parse("id: cpp.x\ntitle: t\nlang: cpp\ntopic: t\n---\n", "l.md", &l) != 0);
+    CHECK(strstr(err_msg(), "vide") != NULL);
+    CHECK(lesson_parse("id: rust.x\ntitle: t\nlang: cpp\ntopic: t\n---\nx\n", "l.md", &l) != 0);
+    CHECK(lesson_parse("idd: cpp.x\n---\nx\n", "l.md", &l) != 0);
+    CHECK(strstr(err_msg(), "clé inconnue") != NULL);
 }

@@ -89,6 +89,23 @@ const exercise *Engine::find(const QString &id) const
     return catalog_find(&cat_, id.toUtf8().constData());
 }
 
+const lesson *Engine::findLesson(const QString &id) const
+{
+    return catalog_find_lesson(&cat_, id.toUtf8().constData());
+}
+
+bool Engine::lessonRead(const lesson &l) const
+{
+    return progress_status(&prog_, l.id) == STATUS_PASSED;
+}
+
+void Engine::markLessonRead(const lesson &l)
+{
+    if (progress_record(cfg_.progress_path, l.id, EVENT_LESSON_READ, 0) != 0)
+        throwLastError("enregistrement de la progression");
+    reloadProgress();
+}
+
 exercise_status Engine::status(const exercise &ex) const
 {
     return progress_status(&prog_, ex.id);

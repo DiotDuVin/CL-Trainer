@@ -1,0 +1,23 @@
+=== test: une paire
+--- stdin
+3 7
+--- stdout
+7 3
+
+=== test: plusieurs paires
+--- stdin
+1 2
+-5 10
+0 0
+--- stdout
+2 1
+10 -5
+0 0
+
+=== test: valeurs extrêmes [hidden]
+--- stdin
+2147483647 -2147483648
+42 42
+--- stdout
+-2147483648 2147483647
+42 42

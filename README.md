@@ -7,9 +7,10 @@ correction automatique et des explications.
 Le moteur est écrit en C11 (POSIX). Il compile et exécute votre code avec les vrais
 outils (`g++`, `git`, `dotnet`, `cargo`), puis compare la sortie aux tests.
 
-> État : **étape 4**. Moteur C++ complet (progression, indices, recommandations,
-> validation), utilisable en ligne de commande **ou avec une application graphique**.
-> À venir : une trentaine d'exercices C++, puis Git, C# et Rust.
+> État : **étape 5a**. Des **cours** (pensés pour qui connaît le C) suivis d'exercices
+> corrigés automatiquement, en ligne de commande ou dans une application graphique.
+> Contenu actuel : 3 chapitres C++ (premier programme, références, fonctions), 9 exercices.
+> À venir : 11 autres chapitres C++, puis Git, C# et Rust.
 
 ![Application graphique : résultats des tests](docs/images/gui-echec.png)
 
@@ -57,6 +58,8 @@ Installation dans le menu des applications : `make install install-gui PREFIX=$H
 
 ```sh
 trainer next                       # que faire maintenant ?
+trainer learn                      # liste des cours
+trainer learn cpp.lesson.basics    # lire un cours
 trainer list                       # catalogue et état de chaque exercice
 trainer show cpp.basics.hello      # énoncé
 trainer start cpp.basics.hello     # copie le code de départ dans ~/trainer-workspace
@@ -108,4 +111,4 @@ La CI GitHub (`.github/workflows/ci.yml`) lance tout cela à chaque push et pull
 avec gcc et clang.
 
 - Architecture et signatures : [docs/architecture.md](docs/architecture.md)
-- Écrire un exercice : [docs/exercise-format.md](docs/exercise-format.md)
+- Écrire un cours ou un exercice : [docs/exercise-format.md](docs/exercise-format.md)

@@ -38,6 +38,7 @@ signals:
     void progressChanged();            // la progression a été modifiée ici
     void checkFinished(bool passed);   // fin d'une vérification
     void message(const QString &text); // texte pour la barre d'état
+    void openLesson(const QString &id); // « Lire le cours »
 
 private slots:
     void onStart();
@@ -64,6 +65,7 @@ private:
     QListWidget *tests_;
     QTextBrowser *details_;
     QTextBrowser *correction_;
+    QPushButton *lessonButton_;
     QPushButton *startButton_;
     QPushButton *editorButton_;
     QPushButton *folderButton_;

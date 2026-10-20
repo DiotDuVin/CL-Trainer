@@ -1,0 +1,67 @@
+id: cpp.references.vowels
+title: Compter les voyelles
+lang: cpp
+level: 2
+topic: references
+tags: const, references, string
+requires: cpp.references.swap
+files: main.cpp
+estimated_min: 15
+
+## statement
+Écris la fonction `count_vowels`, qui renvoie le nombre de voyelles d'un
+texte **sans le copier ni le modifier**. Choisis toi-même le bon type de
+paramètre : c'est le cœur de l'exercice.
+
+Les voyelles sont a, e, i, o, u, y, en minuscule ou en majuscule. Les
+lettres accentuées ne comptent pas.
+
+Le programme lit l'entrée ligne par ligne et affiche, pour chaque ligne, le
+nombre de voyelles :
+
+    entrée : Bonjour le monde
+    sortie : 6
+
+Le `main` fourni appelle `count_vowels(line)` : complète la signature et
+le corps de la fonction.
+
+## hints
+Un texte qu'on lit sans le modifier, et qu'on ne veut pas copier : relis la
+partie « const & » du cours.
+---
+Pour ignorer la casse : `std::tolower(static_cast<unsigned char>(c))`
+(en-tête <cctype>), puis compare avec 'a', 'e'... Ou bien cherche le
+caractère dans une chaîne : `std::string("aeiouyAEIOUY").find(c) != std::string::npos`.
+
+## explanation
+Solution de référence :
+
+    int count_vowels(const std::string &text) {
+        int count = 0;
+        for (std::size_t i = 0; i < text.size(); ++i) {
+            int c = std::tolower(static_cast<unsigned char>(text[i]));
+            if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' || c == 'y')
+                ++count;
+        }
+        return count;
+    }
+
+Le choix important est `const std::string &text` :
+
+- **`&`** : pas de copie de la chaîne. Une ligne peut être très longue, et
+  la copier coûterait une allocation et une recopie complète.
+- **`const`** : la fonction promet de ne pas modifier le texte, et le
+  compilateur le vérifie. Le lecteur le sait sans lire le corps.
+
+Avec `std::string text` (par valeur), le programme est juste, mais copie la
+chaîne à chaque appel : en revue de code, on te le ferait corriger. Avec
+`std::string &text` (sans const), il compile aussi, mais empêche d'appeler
+`count_vowels("texte")` et ment sur l'intention de la fonction.
+
+## common_mistakes
+- Passer la `std::string` par valeur : correct, mais copie inutile.
+- Oublier `const` : la fonction semble pouvoir modifier son argument.
+- Oublier les majuscules, ou le y.
+- Appeler `std::tolower` sur un `char` accentué sans conversion en
+  `unsigned char` : comportement indéfini (les octets UTF-8 > 127 sont
+  négatifs dans un `char` signé).

@@ -1,4 +1,65 @@
-# Format des exercices
+# Format des cours et des exercices
+
+## Chapitres et cours
+
+Un **chapitre** est un dossier qui contient un cours (`lesson.md`) et ses
+exercices. Les exercices du dossier sont rattachés automatiquement au cours :
+« Suivant » propose le cours avant eux, et l'application affiche « Lire le
+cours » sur chaque exercice.
+
+```
+exercises/cpp/02-references/
+├── lesson.md
+├── 01-swap/      (exercise.txt, tests.txt, starter/, solution/)
+├── 02-minmax/
+└── 03-vowels/
+```
+
+### lesson.md
+
+```
+id: cpp.lesson.references
+title: Références et const
+lang: cpp
+topic: references
+estimated_min: 15
+---
+## Ce que tu connais en C
+...
+```
+
+L'en-tête (`id`, `title`, `lang`, `topic` obligatoires ; `estimated_min`
+facultatif) se termine par une ligne `---`. Le reste est le cours, en
+Markdown.
+
+Plan conseillé (celui des cours C++) : **Ce que tu connais en C**, puis la
+notion avec des exemples, **Pièges**, **En entreprise**, **Vérifie ta
+compréhension** (questions, puis une section « Réponses »).
+
+### Exemples vérifiés
+
+Un bloc ` ```cpp example ` est un **programme complet**. `trainer validate`
+le compile (avec `-Wall -Wextra -pedantic`, AddressSanitizer et UBSan), puis
+l'exécute. L'exemple est rejeté s'il ne compile pas, s'il produit un
+avertissement, s'il plante, s'il se termine avec un code non nul ou s'il a un
+comportement indéfini. Un bloc ` ```output ` placé juste après donne la sortie
+attendue, qui doit correspondre exactement.
+
+````
+```cpp example
+#include <iostream>
+int main() { std::cout << 6 * 7 << '\n'; }
+```
+
+```output
+42
+```
+````
+
+Les fragments de code (qui ne sont pas des programmes complets) s'écrivent
+avec un simple ` ```cpp ` : ils sont affichés, mais pas exécutés.
+
+## Exercices
 
 Un exercice est un **dossier** placé n'importe où sous `exercises/`. Le préfixe
 numérique des dossiers fixe l'ordre d'affichage (`exercises/cpp/01-basics/hello/`).

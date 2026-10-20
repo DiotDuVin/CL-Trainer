@@ -1,0 +1,57 @@
+id: cpp.basics.hello
+title: Bonjour, prénom
+lang: cpp
+level: 1
+topic: basics
+tags: io, string
+files: main.cpp
+estimated_min: 5
+
+## statement
+Lis un prénom (un seul mot) sur l'entrée standard, puis affiche :
+
+    Bonjour, <prénom> !
+
+suivi d'un retour à la ligne.
+
+Exemple : avec l'entrée `Ada`, le programme affiche `Bonjour, Ada !`
+
+Outils : `std::cin`, `std::cout` et `std::string` (en-têtes <iostream> et <string>).
+
+## hints
+`std::string prenom; std::cin >> prenom;` lit un mot : la lecture saute les
+espaces initiaux et s'arrête au premier espace ou retour à la ligne.
+---
+Attention à la typographie demandée : un espace avant le point
+d'exclamation, et un retour à la ligne final ('\n').
+
+## explanation
+Solution de référence :
+
+    std::string name;
+    if (!(std::cin >> name)) {
+        return 1;
+    }
+    std::cout << "Bonjour, " << name << " !\n";
+
+Points importants :
+
+- `std::cin >> name` lit un « mot » : il ignore les blancs initiaux (espaces,
+  tabulations, retours à la ligne) puis s'arrête au premier blanc. C'est pour
+  cela que l'entrée "   Grace  " donne bien "Grace". Pour lire une ligne
+  entière (avec ses espaces), on utilise `std::getline(std::cin, s)`.
+- `if (!(std::cin >> name))` : une lecture peut échouer (entrée vide, fin de
+  fichier). Vérifier l'état du flux est un réflexe professionnel. Ici, on
+  renvoie un code d'erreur non nul, la convention Unix pour « échec ».
+- `std::string` gère sa mémoire tout seul : aucun risque de débordement de
+  tampon, contrairement à `char nom[20]` + `scanf("%s")` en C.
+
+## common_mistakes
+- Utiliser `std::endl` partout : il ajoute '\n' ET vide le tampon de sortie
+  (flush). C'est inutilement lent dans une boucle ; préférer '\n'.
+- Écrire `using namespace std;` dans un en-tête (.hpp) : cela pollue l'espace
+  de noms de tous les fichiers qui l'incluent. Dans un petit .cpp c'est
+  toléré, mais beaucoup d'entreprises l'interdisent : autant prendre
+  l'habitude de `std::`.
+- Oublier l'espace avant « ! » ou le retour à la ligne final : la sortie doit
+  correspondre exactement (aux espaces de fin de ligne près).

@@ -194,6 +194,12 @@ int cmd_next(const trainer_config *cfg, int argc, char **argv)
     case RECO_NEXT:
         printf("Prochain exercice de la progression :\n\n");
         break;
+    case RECO_LESSON:
+        printf("Avant l'exercice ci-dessous, lis le cours %s« %s »%s :\n"
+               "  %strainer learn %s%s\n\n",
+               term(T_BOLD), reco.lesson_to_read->title, term(T_RESET), term(T_CYAN),
+               reco.lesson_to_read->id, term(T_RESET));
+        break;
     }
     if (reco.ex) {
         const exercise *ex = reco.ex;
@@ -201,7 +207,9 @@ int cmd_next(const trainer_config *cfg, int argc, char **argv)
         print_level(ex->level);
         printf("\n  %s%s · %s · thème %s%s\n\n", term(T_DIM), ex->id, lang_name(ex->lang),
                ex->topic, term(T_RESET));
-        if (reco.reason == RECO_RESUME)
+        if (reco.reason == RECO_LESSON)
+            printf("  Ensuite : trainer start %s\n", ex->id);
+        else if (reco.reason == RECO_RESUME)
             printf("  Vérifier : %strainer check %s%s\n", term(T_CYAN), ex->id, term(T_RESET));
         else
             printf("  Énoncé : trainer show %s\n  Commencer : %strainer start %s%s\n",

@@ -1,0 +1,79 @@
+id: cpp.basics.initials
+title: Initiales
+lang: cpp
+level: 1
+topic: basics
+tags: string, getline, characters
+requires: cpp.basics.hello
+files: main.cpp
+estimated_min: 15
+
+## statement
+Chaque ligne de l'entrée contient un nom complet (un ou plusieurs mots
+séparés par des espaces). Pour chaque ligne, affiche les initiales en
+majuscules, chacune suivie d'un point, puis un retour à la ligne :
+
+    entrée : ada lovelace
+    sortie : A.L.
+
+    entrée :   Grace  Brewster   Hopper
+    sortie : G.B.H.
+
+Une ligne vide (ou ne contenant que des espaces) donne une ligne vide.
+Les noms ne contiennent que des lettres non accentuées.
+
+Outils : `std::getline`, parcours d'une `std::string` caractère par
+caractère, `std::toupper` (en-tête <cctype>).
+
+## hints
+Lis l'entrée ligne par ligne :
+`std::string line; while (std::getline(std::cin, line)) { ... }`
+---
+Une lettre est une initiale si c'est le premier caractère de la ligne, ou si
+le caractère juste avant est un espace. Parcours la ligne avec un indice
+`std::size_t i` et regarde `line[i - 1]` (seulement si i > 0 !).
+---
+`std::toupper` prend et renvoie un `int` : convertis le résultat avec
+`static_cast<char>(...)` avant de l'ajouter à ta chaîne de résultat.
+
+## explanation
+Solution de référence :
+
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        std::string initials;
+        for (std::size_t i = 0; i < line.size(); ++i) {
+            bool starts_word = line[i] != ' ' && (i == 0 || line[i - 1] == ' ');
+            if (starts_word) {
+                unsigned char c = static_cast<unsigned char>(line[i]);
+                initials += static_cast<char>(std::toupper(c));
+                initials += '.';
+            }
+        }
+        std::cout << initials << '\n';
+    }
+
+Points importants :
+
+- `std::getline` lit toute la ligne, espaces compris, contrairement à
+  `std::cin >> mot`. Elle renvoie le flux, qui devient « faux » en fin
+  d'entrée : c'est ce qui arrête la boucle.
+- L'ordre des conditions compte : dans `i == 0 || line[i - 1] == ' '`, le
+  `||` s'arrête dès que `i == 0` est vrai, donc `line[i - 1]` n'est jamais
+  évalué avec i = 0 (ce serait un accès hors limites, comme en C).
+- `std::size_t` est le type des tailles et des indices (`line.size()`
+  renvoie un `std::size_t`) : avec un `int`, -Wall signale une comparaison
+  entre entiers signé et non signé.
+- `std::string` s'agrandit avec `+=` sans aucune gestion de mémoire.
+
+## common_mistakes
+- Lire avec `std::cin >> mot` : on perd la notion de ligne (on ne sait plus
+  quelles initiales vont ensemble).
+- Tester `line[i - 1]` sans vérifier `i > 0` : accès hors limites quand
+  i = 0 (comportement indéfini, invisible la plupart du temps... puis un jour
+  un plantage).
+- Passer un `char` directement à `std::toupper` : si le caractère est négatif
+  (lettre accentuée en UTF-8), c'est un comportement indéfini. Toujours
+  convertir en `unsigned char` d'abord.
+- Oublier de traiter les espaces multiples : seule la première lettre après
+  un ou plusieurs espaces est une initiale.

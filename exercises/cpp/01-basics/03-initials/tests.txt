@@ -1,0 +1,33 @@
+=== test: exemple simple
+--- stdin
+ada lovelace
+--- stdout
+A.L.
+
+=== test: plusieurs lignes
+--- stdin
+Linus Torvalds
+bjarne stroustrup
+Ken
+--- stdout
+L.T.
+B.S.
+K.
+
+=== test: espaces multiples [hidden]
+--- stdin
+  Grace  Brewster   Hopper  
+--- stdout
+G.B.H.
+
+=== test: ligne vide [hidden]
+--- stdin
+dennis ritchie
+
+   
+margaret hamilton
+--- stdout
+D.R.
+
+
+M.H.
