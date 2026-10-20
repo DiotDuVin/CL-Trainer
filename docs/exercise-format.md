@@ -110,10 +110,11 @@ inaperçue.
   marqueur. Si un exercice en a besoin, il faudra un mécanisme d'échappement.
 - En mode `exact`, on ne peut pas exiger de lignes vides en fin de sortie.
 
-## Règles de qualité (vérifiées automatiquement à l'étape 3)
+## Règles de qualité (vérifiées par `trainer validate` et la CI)
 
 1. La solution de référence réussit tous les tests.
 2. Le starter compile mais **échoue** au moins à un test.
 3. Chaque exercice a au moins un test caché pour un cas limite.
-4. L'explication montre la solution, explique le **pourquoi**, et cite les bonnes
-   pratiques professionnelles.
+4. Le catalogue n'a ni id en double, ni prérequis inconnu, ni cycle de prérequis.
+5. (Relecture humaine) L'explication montre la solution, explique le **pourquoi**, et
+   cite les bonnes pratiques professionnelles.

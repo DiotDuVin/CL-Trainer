@@ -17,6 +17,10 @@
 
 #include "strvec.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     char *name;
     int hidden;          /* 1 : entrée et sortie attendue non affichées */
@@ -40,5 +44,9 @@ int testspec_parse(const char *text, const char *origin, test_suite *ts);
 /* Charge un fichier tests.txt. 0 / -1. */
 int testspec_load(const char *path, test_suite *ts);
 void testspec_free(test_suite *ts);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

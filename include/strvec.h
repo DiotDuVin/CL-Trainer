@@ -9,6 +9,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     char **items;
     size_t len;
@@ -27,5 +31,9 @@ void sv_push_owned(strvec *sv, char *s);
 int sv_contains(const strvec *sv, const char *s);
 /* Libère toutes les chaînes et le tableau. */
 void sv_free(strvec *sv);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

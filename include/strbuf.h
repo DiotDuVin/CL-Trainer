@@ -20,6 +20,10 @@
 
 #include "error.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     char *data;  /* NULL tant que rien n'a été ajouté */
     size_t len;  /* longueur sans le '\0' final */
@@ -45,5 +49,9 @@ const char *sb_cstr(const strbuf *sb);
 /* Transfère la propriété : renvoie une chaîne à libérer avec free() et
  * remet le strbuf à zéro. Ne renvoie jamais NULL. */
 char *sb_release(strbuf *sb);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -14,6 +14,10 @@
 
 #include "strvec.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum { COMPARE_NORMALIZED, COMPARE_EXACT } compare_mode;
 typedef enum { KIND_EXERCISE, KIND_PROJECT } exercise_kind;
 
@@ -26,7 +30,7 @@ typedef struct {
     int level;              /* 1 (débutant) à 5 (professionnel) */
     exercise_kind kind;
     strvec tags;
-    strvec requires;        /* ids des prérequis */
+    strvec prereqs;         /* ids des prérequis (clé « requires ») ; pas « requires » : mot-clé du C++20 */
     strvec files;           /* fichiers édités par l'élève ; vide = défaut du runner */
     long timeout_ms;        /* délai par test */
     int estimated_min;      /* 0 = non renseigné */
@@ -54,5 +58,9 @@ int exercise_load(const char *dir, exercise *ex);
 
 /* Libère tout ce que possède ex (pas ex lui-même). */
 void exercise_free(exercise *ex);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

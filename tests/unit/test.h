@@ -55,5 +55,9 @@ void test_exercise_suite(void);
 void test_testspec_suite(void);
 void test_compare_suite(void);
 void test_process_suite(void);
+void test_progress_suite(void);
+void test_stats_suite(void);
+void test_catalog_suite(void);
+void test_json_suite(void);
 
 #endif

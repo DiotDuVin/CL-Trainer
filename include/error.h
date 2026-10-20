@@ -16,6 +16,10 @@
 #ifndef TRAINER_ERROR_H
 #define TRAINER_ERROR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(__GNUC__)
 #define ATTR_PRINTF(fmt, args) __attribute__((format(printf, fmt, args)))
 #define ATTR_NORETURN __attribute__((noreturn))
@@ -37,5 +41,9 @@ const char *err_msg(void);
 
 /* Erreur irrécupérable (bug interne, mémoire épuisée) : affiche et quitte. */
 void die(const char *fmt, ...) ATTR_PRINTF(1, 2) ATTR_NORETURN;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

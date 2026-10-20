@@ -14,6 +14,10 @@
 #include "exercise.h"
 #include "strvec.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     exercise *items;
     size_t len;
@@ -34,5 +38,9 @@ int catalog_load(const char *root, catalog *cat);
 const exercise *catalog_find(const catalog *cat, const char *id);
 
 void catalog_free(catalog *cat);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

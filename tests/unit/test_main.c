@@ -15,7 +15,9 @@ int main(void)
         { "strbuf", test_strbuf_suite },     { "text", test_text_suite },
         { "fs", test_fs_suite },             { "exercise", test_exercise_suite },
         { "testspec", test_testspec_suite }, { "compare", test_compare_suite },
-        { "process", test_process_suite },
+        { "process", test_process_suite },   { "progress", test_progress_suite },
+        { "stats", test_stats_suite },       { "catalog", test_catalog_suite },
+        { "json", test_json_suite },
     };
     for (size_t i = 0; i < sizeof suites / sizeof suites[0]; i++) {
         int before = test_failures;
