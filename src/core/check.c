@@ -25,6 +25,39 @@ const char *verdict_label(verdict v)
     return "?";
 }
 
+void check_explain(const exercise *ex, const test_case *tc, const test_outcome *o,
+                   strbuf *out)
+{
+    const proc_result *res = &o->res;
+    switch (o->result) {
+    case VERDICT_TIMEOUT:
+        sb_appendf(out, "Le programme a dépassé %ld ms : boucle infinie, ou attente "
+                        "d'une entrée qui n'arrive pas ?", ex->timeout_ms);
+        break;
+    case VERDICT_TOO_MUCH_OUTPUT:
+        sb_append(out, "Le programme a écrit plus de 1 Mo : probablement une boucle "
+                       "infinie qui affiche.");
+        break;
+    case VERDICT_SANITIZER:
+        sb_append(out, "Le sanitizer a détecté une erreur (fuite mémoire, accès hors "
+                       "limites, use-after-free, dépassement d'entier...). Dans son "
+                       "rapport, cherche la première ligne qui cite ton fichier "
+                       "(ex. « main.cpp:12 »).");
+        break;
+    case VERDICT_CRASH:
+        sb_appendf(out, "Le programme s'est arrêté brutalement : %s.",
+                   proc_signal_description(res->signal));
+        break;
+    case VERDICT_WRONG_EXIT:
+        sb_appendf(out, "Code de retour %d, attendu %d (valeur renvoyée par main ou "
+                        "passée à exit).", res->exit_code, tc->expected_exit);
+        break;
+    case VERDICT_PASS:
+    case VERDICT_WRONG_OUTPUT:
+        break;
+    }
+}
+
 static verdict judge(const exercise *ex, const test_case *tc, const proc_result *res)
 {
     if (res->timed_out)

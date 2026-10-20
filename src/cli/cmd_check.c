@@ -46,32 +46,11 @@ static void print_diff(const exercise *ex, const test_case *tc, const proc_resul
 static void print_failure(const exercise *ex, const test_case *tc, const test_outcome *o)
 {
     const proc_result *res = &o->res;
-    switch (o->result) {
-    case VERDICT_TIMEOUT:
-        printf("    Le programme a dépassé %ld ms : boucle infinie, ou attente d'une "
-               "entrée qui n'arrive pas ?\n", ex->timeout_ms);
-        break;
-    case VERDICT_TOO_MUCH_OUTPUT:
-        printf("    Le programme a écrit plus de 1 Mo : probablement une boucle "
-               "infinie qui affiche.\n");
-        break;
-    case VERDICT_SANITIZER:
-        printf("    Le sanitizer a détecté une erreur (fuite mémoire, accès hors limites, "
-               "use-after-free, dépassement d'entier...).\n"
-               "    Dans le rapport ci-dessous, cherche la première ligne qui cite "
-               "ton fichier (ex. « main.cpp:12 »).\n");
-        break;
-    case VERDICT_CRASH:
-        printf("    Le programme s'est arrêté brutalement : %s.\n",
-               proc_signal_description(res->signal));
-        break;
-    case VERDICT_WRONG_EXIT:
-        printf("    Code de retour %d, attendu %d (valeur renvoyée par main ou "
-               "passée à exit).\n", res->exit_code, tc->expected_exit);
-        break;
-    default:
-        break;
-    }
+    strbuf why = STRBUF_INIT;
+    check_explain(ex, tc, o, &why);
+    if (why.len)
+        printf("    %s\n", why.data);
+    sb_free(&why);
 
     if (tc->hidden) {
         /* Ne pas montrer l'entrée d'un test caché : on veut un programme

@@ -11,6 +11,7 @@
 
 #include "exercise.h"
 #include "process.h"
+#include "strbuf.h"
 #include "testspec.h"
 
 #ifdef __cplusplus
@@ -60,6 +61,13 @@ void check_report_free(check_report *rep);
 
 /* Libellé court : "réussi", "temps dépassé"... */
 const char *verdict_label(verdict v);
+
+/* Explication pédagogique d'un échec (une ou deux phrases, texte brut),
+ * ajoutée à out. Rien pour VERDICT_PASS et VERDICT_WRONG_OUTPUT (la
+ * différence de sortie se décrit avec compare_first_diff). Partagée par le
+ * terminal et l'application graphique. */
+void check_explain(const exercise *ex, const test_case *tc, const test_outcome *o,
+                   strbuf *out);
 
 #ifdef __cplusplus
 }
